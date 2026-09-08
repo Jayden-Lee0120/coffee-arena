@@ -39,6 +39,8 @@ img{max-width:100%}
   border:1px solid var(--line);border-radius:999px;padding:4px 9px}
 .abortbtn{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;color:var(--ember);
   background:rgba(255,92,62,.14);border:1px solid rgba(255,92,62,.5);white-space:nowrap}
+.me-chip.editable{color:var(--cream);border-color:var(--amber);cursor:pointer}
+.me-chip:disabled{cursor:default}
 #stage{flex:1;padding:18px 16px 8px;display:flex;flex-direction:column;gap:16px}
 
 .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
@@ -135,6 +137,17 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .passgrid button:not(:disabled):active{background:rgba(245,165,36,.18);border-color:var(--amber)}
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
+/* 초성 퀴즈 */
+.chobox{display:flex;flex-direction:column;align-items:center;gap:7px;padding:18px 14px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--line)}
+.chobox .lab2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.chobox .chobig{font-family:var(--display);font-size:60px;line-height:1.05;letter-spacing:.12em;color:var(--amber)}
+.cstat{min-height:20px;text-align:center;font-size:13.5px;color:var(--muted)}
+.cstat.ok{color:var(--mint);font-weight:700}
+.cstat.rej{color:var(--ember);font-weight:700}
+.cstat.chk{color:var(--amber)}
+#cw{text-align:center;font-size:24px;letter-spacing:.1em}
+
 /* 가위바위보 */
 .vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:var(--surface);
   border:1px solid var(--line);border-radius:14px;padding:16px 12px}
@@ -264,7 +277,7 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
     <div class="brand"><span class="cup">☕</span> 커피 결투장</div>
     <div class="spacer"></div>
     <button class="abortbtn hidden" id="abort">■ 중단</button>
-    <div class="me-chip hidden" id="meChip"></div>
+    <button class="me-chip hidden" id="meChip"></button>
     <div class="livecount"><span class="dot idle" id="liveDot"></span><span id="liveNum">–</span></div>
   </header>
   <main id="stage"></main>
@@ -285,7 +298,8 @@ const NV_COUNT=3000;    // 동시 시작 카운트다운
 const NV_GRACE=400;     // 폭발 직전에 뗀 신호가 도착할 여유
 const NV_CAP=20000;     // 안전 상한
 const UNI_LIMIT=30000, REVEAL_MS=6000, UNI_MAX=50;
-const BOMB_MIN_HOLD=1200, BOMB_CAP=50000;
+const BOMB_MIN_HOLD=1200;
+const BOMB_FUSE_MIN=7000, BOMB_FUSE_MAX=22000;   // 폭탄 시간: 판마다 이 사이에서 하나를 뽑는다
 const MAX_REMATCH=5;
 const ROUL_SPIN=5200;                                    // 룰렛 회전 시간 (CSS transition 과 일치)
 const REACT_TRIALS=5, REACT_MIN=1500, REACT_MAX=4500;    // 반응속도: 신호까지 1.5~4.5초, 기본 5회
@@ -296,13 +310,63 @@ const CODE_ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 헷갈리는 글자(I
 const PREFIX="cofarena-";
 const GAMES={
   nerve:{icon:"🔥",name:"배짱 버튼",ds:"누르고 있으면 점수가 오르지만 언제 터질지 모릅니다. 최저 점수가 삽니다."},
-  bomb:{icon:"💣",name:"폭탄 돌리기",ds:"폭탄을 다른 사람에게 떠넘기세요. 터질 때 들고 있던 사람이 삽니다."},
+  bomb:{icon:"💣",name:"폭탄 돌리기",ds:"7~22초 사이 아무 때나 터집니다. 그때 들고 있던 사람이 삽니다."},
   unique:{icon:"🔢",name:"숫자 서바이벌",ds:"나만 쓴 숫자면 탈출. 겹치면 다음 라운드로. 끝까지 남으면 삽니다."},
   roul:{icon:"🎡",name:"룰렛 돌리기",ds:"접속한 인원으로 룰렛이 자동으로 만들어집니다. 방장이 돌려서 걸린 사람이 삽니다."},
   react:{icon:"⚡",name:"반응속도 테스트",ds:"초록불이 켜지면 바로 탭. 여러 번 중 가장 빠른 기록으로 겨루고, 그게 제일 느린 사람이 삽니다."},
-  rps:{icon:"✊",name:"가위바위보",ds:"컴퓨터와 한판. 이긴 사람은 그 자리에서 탈출하고, 지거나 비기면 다음 라운드로."}
+  rps:{icon:"✊",name:"가위바위보",ds:"컴퓨터와 한판. 이긴 사람은 그 자리에서 탈출하고, 지거나 비기면 다음 라운드로."},
+  cho:{icon:"🔠",name:"초성 퀴즈",ds:"뜬 자음 두 개로 시작하는 진짜 단어를 가장 빨리 적으세요. 제출 순서가 곧 순위입니다."}
 };
 const WHEEL_COLORS=["#F5A524","#FF5C3E","#4ED9A4","#C97B2E","#7FB0A0"];
+const CHO_LIMIT=60000;
+
+/* 초성 퀴즈용 기본 단어 — 두 가지로 쓴다.
+   (1) 빠른 인정: 여기 있으면 사전 조회 없이 즉시 통과
+   (2) 문제 출제: 여기 실제로 존재하는 초성 조합에서만 문제를 뽑아, 답이 없는 조합이 나오지 않게 한다
+   목록에 없는 단어는 위키낱말사전·위키백과에 물어본다. */
+const CHO_SEED=(
+"가방 가족 가을 가지 간장 감기 감자 강산 거리 거울 건물 걸음 검사 겨울 결과 경기 경찰 계단 계산 계절 "+
+"고기 고향 골목 공간 공기 공부 공원 공장 과일 과자 관심 광장 교실 교육 교통 구름 구두 국가 국물 국수 "+
+"군인 권리 규칙 그림 극장 근처 글자 기간 기계 기록 기분 기술 기억 기자 기차 기침 김치 까치 꼬리 "+
+"나라 나무 나비 낙엽 날개 날씨 남산 남편 냄새 노래 노력 노인 논밭 농부 농촌 눈물 눈빛 능력 "+
+"다리 단어 단추 달걀 담배 답장 당근 대답 대문 대학 도로 도시 도장 독서 동네 동물 동생 돼지 두부 뒷문 "+
+"등불 딸기 땅콩 떡국 뚜껑 라면 로봇 리본 "+
+"마늘 마당 마루 마음 마을 만두 만화 말씀 맥주 머리 먼지 명절 모기 모래 모양 모자 목숨 목표 무대 무릎 "+
+"문제 문화 물건 물결 미소 미술 민족 "+
+"바깥 바다 바람 바지 박수 반지 발표 밤낮 방법 방송 배추 백지 버스 버튼 번호 벌레 법칙 벚꽃 베개 벽지 "+
+"변화 별명 병원 보리 보물 볼펜 봉지 부모 부부 부엌 부자 북극 불빛 비누 비밀 빗물 빨래 뿌리 "+
+"사과 사람 사랑 사슴 사실 사자 사진 산길 산책 상자 상처 새벽 색깔 생각 생선 생일 서점 선물 선생 설탕 "+
+"성격 세계 세상 소금 소리 소설 소식 손등 손목 손톱 수건 수박 수업 수영 숙제 순간 술집 숫자 스님 시간 "+
+"시계 시골 시내 시장 식구 식당 식물 신문 신발 신호 실수 심장 쌀밥 씨앗 "+
+"아기 아들 아빠 아이 아침 안개 안경 앞길 야구 약국 약속 양말 양파 어깨 어른 얼굴 얼음 엄마 여름 여자 "+
+"여행 역사 연구 연기 연습 연필 열매 열쇠 엽서 영화 예술 오늘 오리 오후 온도 옷장 왕자 요리 요일 용기 "+
+"우산 우유 우정 운동 운명 웃음 위험 유리 유행 은행 음식 음악 의사 의자 이름 이유 이불 인간 인기 인사 "+
+"인생 일기 입술 입장 "+
+"자리 자연 자유 작가 작품 잔디 잠깐 장갑 장난 장마 재료 재미 저녁 전기 전화 절벽 젊음 정도 정문 정신 "+
+"제목 조각 조건 조사 종이 좌석 주말 주방 주변 주소 주인 죽음 준비 줄기 중간 지구 지도 지붕 지식 지하 "+
+"직업 진실 질문 짐승 집안 짜증 찌개 "+
+"차량 차이 창문 창밖 책상 책임 천사 천장 철학 청소 체육 초록 초원 촛불 추억 축구 축제 출발 충격 치과 "+
+"치마 친구 침대 코피 콩밥 크기 키위 "+
+"타자 탁구 태양 택시 토끼 통증 튀김 특별 파도 파리 판사 팔목 편지 평가 평화 포도 표정 풍경 피부 피자 "+
+"필통 하늘 하루 학교 학생 한글 한복 항구 해변 해석 햇살 행동 행복 향기 허리 현관 형제 호수 혼자 화가 "+
+"화면 화분 환경 회사 후배 훈련 휴가 휴지 흑백 희망 힘줄"
+).split(" ");
+const CHO_TABLE=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+function choOf(ch){
+  const c=ch.charCodeAt(0)-0xAC00;
+  return (c<0||c>11171)?null:CHO_TABLE[Math.floor(c/588)];
+}
+function choKey(w){
+  if(w.length!==2) return null;
+  const a=choOf(w[0]), b=choOf(w[1]);
+  return (a&&b)?a+b:null;
+}
+const CHO_WORDS=new Set(CHO_SEED);
+const CHO_PAIRS=(function(){
+  const s=new Set();
+  CHO_SEED.forEach(w=>{ const k=choKey(w); if(k) s.add(k); });
+  return [...s];
+})();
 
 /* ================= 유틸 ================= */
 const $=s=>document.querySelector(s);
@@ -460,7 +524,7 @@ function initHostState(){
     code:Net.code, hostId:ME.id,
     players:{}, order:[],
     phase:"lobby", game:null, roundKey:null, stage:null, boom:false, spin:null,
-    roster:[], alive:[], uniRound:1, maxNum:20, rpsRound:1, cpu:null, trials:REACT_TRIALS,
+    roster:[], alive:[], uniRound:1, maxNum:20, rpsRound:1, cpu:null, trials:REACT_TRIALS, cho:null,
     holder:null, from:null, passes:0,
     entries:{}, board:null, note:"", loser:null, lastLoser:null,
     rematch:0, remain:0
@@ -468,7 +532,7 @@ function initHostState(){
   ST.players[ME.id]={name:ME.name, emoji:ME.emoji, on:true};
   ST.order.push(ME.id);
   HOST={picks:{}, rps:{}, cpu:0, bombStart:0, bombTick:0, phaseStart:0, handAt:0, lastB:0,
-        fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, next:null};
+        fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, taken:{}, seq:0, next:null};
 }
 
 /* 게스트에게 보내는 상태. ST.entries 에는 애초에 숫자를 담지 않으므로(HOST.picks 에만 보관)
@@ -486,6 +550,31 @@ function publicState(forId){
 }
 
 const onlineIds=()=> (ST?ST.order.filter(id=>ST.players[id]&&ST.players[id].on):[]);
+
+/* 실제로 있는 단어인지 확인. 기본 목록에 있으면 즉시 통과하고,
+   없으면 위키낱말사전 → 위키백과 순으로 물어본다.
+   둘 다 "없다"고 답할 때만 탈락시키고, 조회 자체가 실패하면 인정한다(네트워크 때문에 판이 막히면 안 되므로). */
+function lookupWord(w){
+  if(CHO_WORDS.has(w)) return Promise.resolve(true);
+  const hosts=["ko.wiktionary.org","ko.wikipedia.org"];
+  let errored=false;
+  const ask=i=>{
+    if(i>=hosts.length) return Promise.resolve(errored);
+    const ctl=new AbortController();
+    const timer=setTimeout(()=>ctl.abort(),3500);
+    return fetch("https://"+hosts[i]+"/w/api.php?action=query&format=json&origin=*&titles="+
+                 encodeURIComponent(w), {signal:ctl.signal})
+      .then(r=>r.ok?r.json():Promise.reject(new Error("http")))
+      .then(j=>{
+        const pages=j&&j.query&&j.query.pages;
+        for(const k in pages) if(!("missing" in pages[k])) return true;
+        return ask(i+1);
+      })
+      .catch(()=>{ errored=true; return ask(i+1); })
+      .then(v=>{ clearTimeout(timer); return v; });
+  };
+  return ask(0);
+}
 
 function handleAction(from,d){
   if(Net.role!=="host"||!ST) return;
@@ -538,6 +627,29 @@ function handleAction(from,d){
       ST.entries[from]={submitted:true};   // 낸 손은 HOST.rps 에만 남는다
       return netBroadcast();
     }
+    case "cho": {
+      if(ST.phase!=="play"||ST.game!=="cho") return;
+      if(ST.roster.indexOf(from)<0) return;
+      const cur=ST.entries[from]||{};
+      if(cur.ok||cur.checking) return;                 // 이미 확정했거나 확인 중
+      const w=String(d.word||"").replace(/\s+/g,"");
+      // 형식과 선점은 도착 즉시 동기적으로 판정해야 같은 단어를 두 명이 먹지 않는다
+      if(choKey(w)!==ST.cho){ ST.entries[from]={rej:"form"}; return netBroadcast(); }
+      if(HOST.taken[w]!=null){ ST.entries[from]={rej:"dup"}; return netBroadcast(); }
+      const seq=++HOST.seq;
+      HOST.taken[w]=from;                              // 사전 확인 동안 이 단어를 잠가 둔다
+      ST.entries[from]={word:w, seq, checking:true};
+      netBroadcast();
+      lookupWord(w).then(found=>{
+        if(!ST||ST.game!=="cho") return;
+        const e=ST.entries[from];
+        if(!e||e.word!==w||!e.checking) return;
+        if(found) ST.entries[from]={word:w, seq, ok:true};
+        else { delete HOST.taken[w]; ST.entries[from]={rej:"nodict"}; }
+        netBroadcast();
+      });
+      return;
+    }
     case "spin": {
       if(ST.phase!=="play"||ST.game!=="roul") return;
       if(from!==ST.hostId) return;                       // 룰렛은 방장만 돌린다
@@ -574,8 +686,8 @@ function startGame(g,trials){
   ST.roster=roster.slice(); ST.entries={}; ST.board=null; ST.note=""; ST.loser=null;
   ST.rematch=0; ST.from=null; ST.passes=0;
   HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
-  ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT
-            : g==="react"?REACT_LIMIT : g==="rps"?RPS_LIMIT : 0;
+  ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT : g==="react"?REACT_LIMIT
+            : g==="rps"?RPS_LIMIT : g==="cho"?CHO_LIMIT : 0;
   ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.aborted=false;
   if(g==="nerve"){
     // 이번 라운드의 폭탄 시간은 단 하나. 전원에게 똑같이 적용되며 방장 기기 밖으로 나가지 않는다.
@@ -588,8 +700,14 @@ function startGame(g,trials){
     // 컴퓨터의 손은 라운드 시작 시점에 확정되고 공개 전까지 방송되지 않는다
     HOST.rps={}; HOST.cpu=Math.floor(Math.random()*3);
   }
+  if(g==="cho"){
+    ST.cho=CHO_PAIRS[Math.floor(Math.random()*CHO_PAIRS.length)];
+    HOST.taken={}; HOST.seq=0;
+  }
   if(g==="bomb"){ ST.holder=roster[Math.floor(Math.random()*roster.length)]; HOST.handAt=Date.now();
-    HOST.bombStart=Date.now(); HOST.bombTick=Date.now(); }
+    HOST.bombStart=Date.now(); HOST.bombTick=Date.now();
+    // 이번 판의 폭탄 시간. 방장 기기 밖으로 나가지 않으므로 아무도 미리 알 수 없다
+    HOST.bombFuse=BOMB_FUSE_MIN+Math.random()*(BOMB_FUSE_MAX-BOMB_FUSE_MIN); }
   if(g==="unique"){ ST.alive=roster.slice(); ST.uniRound=1; ST.maxNum=UNI_MAX; }
   netBroadcast();
 }
@@ -597,8 +715,8 @@ function toLobby(){
   ST.aborted = (ST.phase==="play"||ST.phase==="reveal");   // 결과를 못 보고 접은 판인지
   ST.phase="lobby"; ST.game=null; ST.roundKey=null; ST.entries={}; ST.board=null;
   ST.lastLoser=ST.loser||ST.lastLoser; ST.loser=null; ST.note="";
-  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null;
-  HOST.picks={}; HOST.rps={}; HOST.next=null;
+  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.cho=null;
+  HOST.picks={}; HOST.rps={}; HOST.taken={}; HOST.seq=0; HOST.next=null;
   netBroadcast();
 }
 
@@ -624,14 +742,10 @@ function hostTick(){
         return netBroadcast();
       }
     }
-    const ticks=Math.min(8,Math.round(dt/100));
-    const hazard=Math.max(0,(total-10000))/1000*0.0006;
-    let boom= total>=BOMB_CAP;
-    for(let i=0;i<ticks&&!boom;i++) if(Math.random()<hazard) boom=true;
-    if(boom){
+    if(total>=HOST.bombFuse){
       const L=ST.holder;
       ST.phase="result"; ST.loser=L; ST.lastLoser=L;
-      ST.note="총 "+fmt(total)+"초 · "+ST.passes+"번 돌았습니다";
+      ST.note="폭탄 "+fmt(HOST.bombFuse)+"초 · "+ST.passes+"번 돌았습니다";
       ST.board=ST.roster.map(id=>({id,label:id===L?"💥":"세이프",loser:id===L}));
       return netBroadcast();
     }
@@ -682,6 +796,15 @@ function hostTick(){
     return beat();
   }
 
+  if(ST.phase==="play"&&ST.game==="cho"){
+    ST.remain=Math.max(0,CHO_LIMIT-(now-HOST.phaseStart));
+    const settled=ST.roster.every(id=>{ const e=ST.entries[id]; return e&&e.ok; });
+    const pending=ST.roster.some(id=>{ const e=ST.entries[id]; return e&&e.checking; });
+    if(settled||(ST.remain<=0&&!pending)) return resolveCho();
+    if(ST.remain<=0&&now-HOST.phaseStart>CHO_LIMIT+5000) return resolveCho();  // 조회가 안 끝나도 종료
+    return beat();
+  }
+
   if(ST.phase==="reveal"){
     ST.remain=Math.max(0,REVEAL_MS-(now-HOST.phaseStart));
     if(ST.remain<=0) return advance();
@@ -715,6 +838,20 @@ function resolveRps(){
     : "컴퓨터 "+RPS[cpu].e+" · "+(escaped?escaped+"명 탈출 · ":"")+stay.length+"명 잔류";
   ST.remain=REVEAL_MS; HOST.phaseStart=Date.now(); HOST.lastB=0;
   HOST.next={game:"rps", alive:next, rpsRound:ST.rpsRound+1};
+  netBroadcast();
+}
+
+function resolveCho(){
+  const rows=ST.roster.map(id=>{
+    const e=ST.entries[id]||{};
+    return {id, word:e.ok?e.word:null, seq:e.ok?e.seq:99999};
+  }).sort((a,b)=>a.seq-b.seq);                        // 제출 도착 순서가 곧 순위
+  const L=rows[rows.length-1].id;
+  const solved=rows.filter(r=>r.word).length;
+  ST.phase="result"; ST.loser=L; ST.lastLoser=L;
+  ST.note="초성 "+ST.cho+" · "+solved+"/"+rows.length+"명 성공";
+  ST.board=rows.map((b,i)=>({id:b.id, loser:b.id===L,
+    label: b.word ? (i+1)+"등 "+b.word : "미제출"}));
   netBroadcast();
 }
 
@@ -853,10 +990,11 @@ function showFatal(e){
   viewKey=""; render();
 }
 
+let editMode=false;
 function currentView(){
   if(screen==="connecting") return "conn";
   if(screen==="fatal") return "fatal";
-  if(!ME.name) return "name";
+  if(!ME.name||editMode) return "name";
   if(!Net.role) return "entry";
   if(!ST) return "conn";
   if(Net.role==="guest"&&!Net.ok) return "lost";
@@ -870,6 +1008,7 @@ function currentView(){
     if(m.game==="roul") return "roul:"+m.roundKey;
     if(m.game==="react") return "react:"+m.roundKey;
     if(m.game==="rps") return "rps:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
+    if(m.game==="cho") return "cho:"+m.roundKey;
     return "uni:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
   }
   if(m.phase==="reveal") return "reveal:"+m.roundKey+":"+m.note;
@@ -887,7 +1026,7 @@ function render(){
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
-      nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps,
+      nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps, cho:vCho,
       reveal:vReveal, result:vResult, spec:vSpec
      }[v.split(":")[0]]||vLobby)();
   }
@@ -899,8 +1038,13 @@ function renderTop(){
   const canAbort = !!(ST && Net.role==="host" && ST.phase && ST.phase!=="lobby");
   $("#abort").classList.toggle("hidden", !canAbort);
   // 좁은 화면에서 상단이 넘치지 않도록, 중단 버튼이 뜨면 이름 칩은 접는다
-  if(ME.name&&!canAbort){ mc.classList.remove("hidden"); mc.textContent=ME.emoji+" "+ME.name; }
-  else mc.classList.add("hidden");
+  if(ME.name&&!canAbort){
+    mc.classList.remove("hidden");
+    const editable=!Net.role;                 // 방에 들어가기 전에만 바꿀 수 있다
+    mc.textContent=ME.emoji+" "+ME.name+(editable?" ✎":"");
+    mc.classList.toggle("editable",editable);
+    mc.disabled=!editable;
+  }else mc.classList.add("hidden");
   if(!Net.role){ dot.className="dot idle"; num.textContent="–"; return; }
   const on=ST?ST.order.filter(id=>ST.players[id].on).length:0;
   dot.className="dot"+(Net.ok?"":" off");
@@ -918,7 +1062,8 @@ function vName(){
     '<div class="field"><label class="lab" for="nm">이름</label>'+
     '<input type="text" id="nm" maxlength="8" placeholder="예: 김대리" autocomplete="off"></div>'+
     '<div class="field"><span class="lab">캐릭터</span><div class="emojigrid" id="eg"></div></div>'+
-    '<button class="btn" id="ok">다음</button>';
+    '<button class="btn" id="ok">'+(editMode?"저장":"다음")+'</button>'+
+    (editMode?'<button class="btn ghost sm" id="cancel">취소</button>':'');
   stage.appendChild(box);
   const eg=box.querySelector("#eg");
   EMOJIS.forEach(e=>{
@@ -932,11 +1077,17 @@ function vName(){
     const v=nm.value.trim();
     if(!v){ toast("이름을 입력해 주세요"); nm.focus(); return; }
     ME.name=v; lsSet("ca_name",v); lsSet("ca_emoji",ME.emoji);
+    if(editMode){ editMode=false; viewKey=""; render(); toast("바꿨어요"); return; }
     const h=(location.hash||"").replace("#","").toUpperCase();
     if(h.length===4) joinRoom(h); else { viewKey=""; render(); }
   };
   box.querySelector("#ok").onclick=go;
   nm.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+  const cn=box.querySelector("#cancel");
+  if(cn) cn.onclick=()=>{
+    ME.name=lsGet("ca_name")||ME.name; ME.emoji=lsGet("ca_emoji")||ME.emoji;
+    editMode=false; viewKey=""; render();
+  };
 }
 
 /* ---- 방 만들기 / 참가 ---- */
@@ -1149,7 +1300,7 @@ function vBomb(){
        :'<div class="panel"><ul class="rulelist">'+
         '<li>받으면 <b>1.2초 뒤</b>부터 넘길 수 있습니다.</li>'+
         '<li>방금 나에게 넘긴 사람에게는 <span class="hot">되돌려 줄 수 없습니다.</span></li>'+
-        '<li>시간이 갈수록 터질 확률이 올라갑니다. 최대 50초.</li></ul></div>');
+        '<li>폭탄은 <span class="hot">7~22초 사이 한 시각</span>에 터집니다. 매 판 새로 정해져요.</li></ul></div>');
   refs.bomb={line:$("#hlx"),bn:$("#bn"),pg:$("#pg")};
   if(isH){ buzz([40,30,40]); buildPass(); }
 }
@@ -1403,6 +1554,73 @@ function vRps(){
   };
 }
 
+/* ---- 초성 퀴즈 ---- */
+const CHO_REJ={form:"두 글자 · 초성이 맞지 않아요", dup:"이미 나온 단어예요 · 다른 단어로",
+               nodict:"사전에 없는 단어예요"};
+function vCho(){
+  keepAwake(true);
+  const m=ST;
+  stage.innerHTML=
+    '<div class="eyebrow">초성 퀴즈 · '+m.roster.length+'명 · 단판</div>'+
+    '<h2 class="title" style="margin-top:-8px">먼저 적는 사람이 이깁니다</h2>'+
+    '<div class="deadline"><i id="bar"></i></div>'+
+    '<div class="chobox"><span class="lab2">이 초성으로 시작하는 두 글자</span>'+
+    '<span class="chobig">'+esc((m.cho||"")[0]||"")+' '+esc((m.cho||"")[1]||"")+'</span></div>'+
+    '<div class="field"><input type="text" id="cw" maxlength="4" placeholder="단어 입력" '+
+    'autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send"></div>'+
+    '<button class="btn" id="cok">제출하기</button>'+
+    '<div class="cstat" id="cs"></div>'+
+    '<div><div class="eyebrow" style="margin-bottom:8px">먼저 나온 단어</div>'+
+    '<div class="revealgrid" id="cl"></div></div>'+
+    '<div class="panel"><ul class="rulelist">'+
+    '<li>실제 <b>사전에 있는 단어</b>만 인정됩니다. 위키낱말사전·위키백과로 확인해요.</li>'+
+    '<li>같은 단어는 <span class="cool">먼저 낸 사람만</span> 인정 — 늦은 사람은 다른 단어를 쓰면 됩니다.</li>'+
+    '<li>틀려도 시간 안에는 <b>몇 번이든</b> 다시 낼 수 있어요.</li>'+
+    '<li><span class="hot">가장 늦게 낸 사람</span>(또는 못 낸 사람)이 커피를 삽니다.</li></ul></div>'+
+    '<div class="note" id="cn"></div>';
+  const inp=$("#cw"), ok=$("#cok");
+  refs.cho={inp, ok, cs:$("#cs"), cl:$("#cl"), bar:$("#bar"), cn:$("#cn"), shown:""};
+  const send=()=>{
+    const e=m.entries[ME.id]||{};
+    if(e.ok||e.checking) return;
+    const w=inp.value.replace(/\s+/g,"");
+    if(!w){ inp.focus(); return; }
+    netSend({t:"cho", word:w}); buzz(15);
+  };
+  ok.onclick=send;
+  inp.addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); send(); } });
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} },80);
+  paintCho();
+}
+function paintCho(){
+  const r=refs.cho, m=ST; if(!r||!m) return;
+  const e=m.entries[ME.id]||{};
+  const state = e.ok?"ok" : e.checking?"chk" : e.rej?"rej" : "idle";
+  if(r.shown!==state+(e.word||"")){
+    r.shown=state+(e.word||"");
+    r.cs.className="cstat "+state;
+    r.cs.textContent = e.ok?("✅ "+e.word+" · 확정!")
+      : e.checking?("⏳ "+e.word+" 확인 중…")
+      : e.rej?("✖ "+(CHO_REJ[e.rej]||"인정되지 않았어요"))
+      : "";
+    r.inp.disabled=!!(e.ok||e.checking);
+    r.ok.disabled=!!(e.ok||e.checking);
+    r.ok.textContent = e.ok?"확정 · 기다리는 중" : e.checking?"확인 중…" : "제출하기";
+    r.ok.classList.toggle("ghost",!!e.ok);
+    if(e.rej){ r.inp.value=""; try{ r.inp.focus(); }catch(x){} }
+  }
+  const rows=m.roster.map(id=>({id,e:m.entries[id]||{}}))
+    .filter(x=>x.e.ok).sort((a,b)=>a.e.seq-b.e.seq);
+  const key=rows.map(x=>x.id+x.e.word).join(",");
+  if(r.listKey!==key){
+    r.listKey=key;
+    r.cl.innerHTML=rows.map((x,i)=>
+      '<span class="rv uniq"><span class="tg">'+(i+1)+'등</span><span>'+esc(emojiOf(x.id))+'</span>'+
+      '<span>'+esc(nameOf(x.id))+'</span><span class="num">'+esc(x.e.word)+'</span></span>').join("")
+      || '<span class="note">아직 아무도 못 냈어요</span>';
+  }
+}
+
 /* ---- 공개 ---- */
 function vReveal(){
   const m=ST;
@@ -1539,6 +1757,14 @@ function patch(){
     const done=m.alive.filter(id=>m.entries[id]&&m.entries[id].submitted).length;
     refs.rps.rn.textContent="남은 시간 "+Math.ceil(left/1000)+"초 · "+done+"/"+m.alive.length+"명 제출";
   }
+  if(refs.cho&&m.phase==="play"&&m.game==="cho"){
+    const left=getRemain();
+    refs.cho.bar.style.width=(left/CHO_LIMIT*100)+"%";
+    refs.cho.bar.parentNode.classList.toggle("warn",left<15000);
+    const done=m.roster.filter(id=>m.entries[id]&&m.entries[id].ok).length;
+    refs.cho.cn.textContent="남은 시간 "+Math.ceil(left/1000)+"초 · "+done+"/"+m.roster.length+"명 성공";
+    paintCho();
+  }
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
 }
 
@@ -1576,6 +1802,11 @@ function renderRoster(){
       const e=m.entries[id];
       t=(e&&e.submitted)?"✓":"…";
       if(e&&e.submitted) c.className+=" safe";
+    }else if(m.phase==="play"&&m.game==="cho"){
+      const e=m.entries[id];
+      if(e&&e.ok){ t="✓"; c.className+=" safe"; }
+      else if(e&&e.checking) t="⏳";
+      else t="…";
     }else if(m.phase==="play"&&m.game==="react"){
       const e=m.entries[id];
       if(e&&e.done){ t=e.best<99999?e.best+"ms":"꽝"; c.className+=(e.best<99999?" safe":" hot"); }
@@ -1593,6 +1824,10 @@ if(typeof Peer==="undefined"){
 }else{
   setInterval(hostTick,100);
   setInterval(()=>patch(),100);
+  $("#meChip").onclick=()=>{
+    if(Net.role) return;                       // 방에 들어간 뒤에는 바꿀 수 없다
+    editMode=true; viewKey=""; render();
+  };
   $("#abort").onclick=()=>{
     if(!ST||Net.role!=="host"||ST.phase==="lobby") return;
     if(confirm("진행 중인 게임을 중단하고 게임 선택으로 돌아갈까요?")) netSend({t:"lobby"});
