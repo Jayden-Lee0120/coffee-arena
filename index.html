@@ -133,6 +133,61 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .passgrid button:not(:disabled):active{background:rgba(245,165,36,.18);border-color:var(--amber)}
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
+/* 가위바위보 */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;padding:16px 12px}
+.vsside{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.vsl{font-size:12px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vshand{font-size:44px;line-height:1.1}
+.vsx{font-family:var(--display);font-size:15px;color:var(--muted)}
+.rpsrow{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.rpsrow button{padding:16px 6px;border-radius:14px;background:var(--surface);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:5px}
+.rpsrow button .h{font-size:34px;line-height:1}
+.rpsrow button .n{font-size:13px;color:var(--muted)}
+.rpsrow button[aria-pressed=true]{background:rgba(245,165,36,.16);border-color:var(--amber)}
+.rpsrow button[aria-pressed=true] .n{color:var(--amber)}
+.rpsrow button:disabled{opacity:.4}
+.cpuhand{display:flex;flex-direction:column;align-items:center;gap:5px;padding:16px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--line)}
+.cpuhand .lab2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.cpuhand .big{font-size:56px;line-height:1.1}
+.cpuhand .nm2{font-family:var(--display);font-size:19px;color:var(--amber)}
+
+/* 룰렛 */
+.wheelwrap{position:relative;display:grid;place-items:center;padding:8px 0 4px}
+.wheelptr{position:absolute;top:-3px;left:50%;margin-left:-11px;z-index:2;width:0;height:0;
+  border-left:11px solid transparent;border-right:11px solid transparent;border-top:21px solid var(--cream);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.wheel{width:min(78vw,300px);aspect-ratio:1;border-radius:50%;display:block;
+  border:3px solid var(--surface2);box-shadow:0 10px 30px rgba(0,0,0,.5);
+  transform:rotate(0deg);transition:transform 5.2s cubic-bezier(.15,.72,.14,1)}
+.wheelhub{position:absolute;width:42px;height:42px;border-radius:50%;background:var(--surface);
+  border:2px solid var(--line);display:grid;place-items:center;font-size:18px;pointer-events:none}
+
+/* 반응속도 */
+.pad{width:100%;min-height:220px;border-radius:16px;display:grid;place-items:center;align-content:center;
+  gap:7px;text-align:center;padding:22px;border:2px solid var(--line);background:var(--surface);
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;cursor:pointer;
+  transition:background .06s linear,border-color .06s linear}
+.pad .pl{font-family:var(--display);font-size:25px;line-height:1.25}
+.pad .ps{font-size:13px;color:var(--muted)}
+.pad[data-s=wait]{background:#5E2118;border-color:var(--ember)}
+.pad[data-s=wait] .pl{color:#FFDBD2}
+.pad[data-s=wait] .ps{color:#EBAA99}
+.pad[data-s=go]{background:#1C7150;border-color:var(--mint)}
+.pad[data-s=go] .pl{color:#EAFFF6;font-size:38px}
+.pad[data-s=early]{background:#6B4A12;border-color:var(--amber)}
+.pad[data-s=early] .pl{color:#FFE9C2}
+.pad[data-s=early] .ps{color:#D8B77A}
+.pad[data-s=res] .pl,.pad[data-s=done] .pl{font-family:var(--mono);font-size:40px;color:var(--mint);
+  font-variant-numeric:tabular-nums}
+.pad[data-s=done]{border-color:rgba(78,217,164,.55)}
+.trials{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.trial{font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:999px;background:var(--surface);
+  border:1px solid var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
+.trial.on{border-color:var(--mint);color:var(--mint)}
+
 .numpad{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .numpad button{aspect-ratio:1.25;min-height:42px;border-radius:9px;background:var(--surface);
   border:1px solid var(--line);font-family:var(--mono);font-size:15px;font-weight:600}
@@ -218,13 +273,22 @@ const NV_CAP=20000;     // 안전 상한
 const UNI_LIMIT=30000, REVEAL_MS=6000, UNI_MAX=50;
 const BOMB_MIN_HOLD=1200, BOMB_CAP=50000;
 const MAX_REMATCH=5;
+const ROUL_SPIN=5200;                                    // 룰렛 회전 시간 (CSS transition 과 일치)
+const REACT_TRIALS=5, REACT_MIN=1500, REACT_MAX=4500;    // 반응속도: 신호까지 1.5~4.5초, 5회 평균
+const REACT_LIMIT=120000;
+const RPS_LIMIT=20000;
+const RPS=[{n:"가위",e:"✌️"},{n:"바위",e:"✊"},{n:"보",e:"🖐️"}];   // h 는 (h+2)%3 을 이긴다
 const CODE_ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 헷갈리는 글자(I,O,0,1) 제외
 const PREFIX="cofarena-";
 const GAMES={
   nerve:{icon:"🔥",name:"배짱 버튼",ds:"누르고 있으면 점수가 오르지만 언제 터질지 모릅니다. 최저 점수가 삽니다."},
   bomb:{icon:"💣",name:"폭탄 돌리기",ds:"폭탄을 다른 사람에게 떠넘기세요. 터질 때 들고 있던 사람이 삽니다."},
-  unique:{icon:"🔢",name:"숫자 서바이벌",ds:"나만 쓴 숫자면 탈출. 겹치면 다음 라운드로. 끝까지 남으면 삽니다."}
+  unique:{icon:"🔢",name:"숫자 서바이벌",ds:"나만 쓴 숫자면 탈출. 겹치면 다음 라운드로. 끝까지 남으면 삽니다."},
+  roul:{icon:"🎡",name:"룰렛 돌리기",ds:"접속한 인원으로 룰렛이 자동으로 만들어집니다. 방장이 돌려서 걸린 사람이 삽니다."},
+  react:{icon:"⚡",name:"반응속도 테스트",ds:"초록불이 켜지면 바로 탭. 5회 평균이 가장 느린 사람이 삽니다."},
+  rps:{icon:"✊",name:"가위바위보",ds:"컴퓨터와 한판. 이긴 사람은 그 자리에서 탈출하고, 지거나 비기면 다음 라운드로."}
 };
+const WHEEL_COLORS=["#F5A524","#FF5C3E","#4ED9A4","#C97B2E","#7FB0A0"];
 
 /* ================= 유틸 ================= */
 const $=s=>document.querySelector(s);
@@ -381,24 +445,27 @@ function initHostState(){
   ST={
     code:Net.code, hostId:ME.id,
     players:{}, order:[],
-    phase:"lobby", game:null, roundKey:null, stage:null, boom:false,
-    roster:[], alive:[], uniRound:1, maxNum:20,
+    phase:"lobby", game:null, roundKey:null, stage:null, boom:false, spin:null,
+    roster:[], alive:[], uniRound:1, maxNum:20, rpsRound:1, cpu:null,
     holder:null, from:null, passes:0,
     entries:{}, board:null, note:"", loser:null, lastLoser:null,
     rematch:0, remain:0
   };
   ST.players[ME.id]={name:ME.name, emoji:ME.emoji, on:true};
   ST.order.push(ME.id);
-  HOST={picks:{}, bombStart:0, bombTick:0, phaseStart:0, handAt:0, lastB:0,
-        fuse:0, goAt:0, boomAt:0, next:null};
+  HOST={picks:{}, rps:{}, cpu:0, bombStart:0, bombTick:0, phaseStart:0, handAt:0, lastB:0,
+        fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, next:null};
 }
 
 /* 게스트에게 보내는 상태. ST.entries 에는 애초에 숫자를 담지 않으므로(HOST.picks 에만 보관)
    공개 전까지 어떤 기기에도 남의 숫자가 전송되지 않는다. 받는 사람 본인 것만 되돌려 준다. */
 function publicState(forId){
-  if(ST.phase==="play" && ST.game==="unique" && HOST.picks[forId]!=null){
+  if(ST.phase!=="play") return ST;
+  const secret = ST.game==="unique" ? HOST.picks[forId]
+               : ST.game==="rps"    ? HOST.rps[forId] : null;
+  if(secret!=null){
     const e=Object.assign({},ST.entries);
-    e[forId]={submitted:true, mine:HOST.picks[forId]};
+    e[forId]={submitted:true, mine:secret};
     return Object.assign({},ST,{entries:e});
   }
   return ST;
@@ -447,6 +514,40 @@ function handleAction(from,d){
       ST.entries[from]={submitted:true};   // 숫자는 HOST.picks 에만 남는다
       return netBroadcast();
     }
+    case "rps": {
+      if(ST.phase!=="play"||ST.game!=="rps") return;
+      if(ST.alive.indexOf(from)<0) return;
+      if(HOST.rps[from]!=null) return;
+      const h=Math.round(d.hand);
+      if(!(h>=0&&h<=2)) return;
+      HOST.rps[from]=h;
+      ST.entries[from]={submitted:true};   // 낸 손은 HOST.rps 에만 남는다
+      return netBroadcast();
+    }
+    case "spin": {
+      if(ST.phase!=="play"||ST.game!=="roul") return;
+      if(from!==ST.hostId) return;                       // 룰렛은 방장만 돌린다
+      if(ST.stage!=="idle") return;
+      const n=ST.roster.length; if(!n) return;
+      const k=Math.floor(Math.random()*n);
+      const slice=360/n;
+      const center=(k+0.5)*slice;
+      const jitter=(Math.random()-0.5)*slice*0.7;        // 칸 정중앙만 맞지 않도록
+      HOST.roulLoser=ST.roster[k]; HOST.spinAt=Date.now();
+      ST.stage="spin";
+      ST.spin={deg:Math.round((360*6+(360-center-jitter))*100)/100, dur:ROUL_SPIN};
+      return netBroadcast();
+    }
+    case "react": {
+      if(ST.phase!=="play"||ST.game!=="react") return;
+      if(ST.roster.indexOf(from)<0) return;
+      const cur=ST.entries[from]||{};
+      if(cur.done) return;
+      if(d.done) ST.entries[from]={n:REACT_TRIALS, done:true,
+        avg:clamp(Math.round(d.avg||99999),1,99999), best:clamp(Math.round(d.best||99999),1,99999)};
+      else ST.entries[from]={n:clamp(Math.round(d.n||0),0,REACT_TRIALS)};
+      return netBroadcast();
+    }
   }
 }
 
@@ -458,12 +559,19 @@ function startGame(g){
   ST.roster=roster.slice(); ST.entries={}; ST.board=null; ST.note=""; ST.loser=null;
   ST.rematch=0; ST.from=null; ST.passes=0;
   HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
-  ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT : 0;   // 첫 방송부터 올바른 잔여시간
-  ST.stage=null; ST.boom=false;
+  ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT
+            : g==="react"?REACT_LIMIT : g==="rps"?RPS_LIMIT : 0;
+  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null;
   if(g==="nerve"){
     // 이번 라운드의 폭탄 시간은 단 하나. 전원에게 똑같이 적용되며 방장 기기 밖으로 나가지 않는다.
     HOST.fuse=FUSE_MIN+Math.random()*(FUSE_MAX-FUSE_MIN);
     HOST.goAt=0; HOST.boomAt=0; ST.stage="count";
+  }
+  if(g==="roul"){ ST.stage="idle"; HOST.spinAt=0; HOST.roulLoser=null; }
+  if(g==="rps"){
+    ST.alive=roster.slice(); ST.rpsRound=1;
+    // 컴퓨터의 손은 라운드 시작 시점에 확정되고 공개 전까지 방송되지 않는다
+    HOST.rps={}; HOST.cpu=Math.floor(Math.random()*3);
   }
   if(g==="bomb"){ ST.holder=roster[Math.floor(Math.random()*roster.length)]; HOST.handAt=Date.now();
     HOST.bombStart=Date.now(); HOST.bombTick=Date.now(); }
@@ -540,11 +648,80 @@ function hostTick(){
     return beat();
   }
 
+  if(ST.phase==="play"&&ST.game==="roul"){
+    if(ST.stage==="spin"&&now-HOST.spinAt>=ROUL_SPIN+700) resolveRoul();
+    return;                                   // 대기 중에는 바뀌는 게 없으니 방송하지 않는다
+  }
+
+  if(ST.phase==="play"&&ST.game==="react"){
+    ST.remain=Math.max(0,REACT_LIMIT-(now-HOST.phaseStart));
+    if(ST.roster.every(id=>ST.entries[id]&&ST.entries[id].done)||ST.remain<=0) return resolveReact();
+    return beat();
+  }
+
+  if(ST.phase==="play"&&ST.game==="rps"){
+    ST.remain=Math.max(0,RPS_LIMIT-(now-HOST.phaseStart));
+    if(ST.alive.every(id=>HOST.rps[id]!=null)||ST.remain<=0) return resolveRps();
+    return beat();
+  }
+
   if(ST.phase==="reveal"){
     ST.remain=Math.max(0,REVEAL_MS-(now-HOST.phaseStart));
     if(ST.remain<=0) return advance();
     return beat();
   }
+}
+
+function resolveRps(){
+  const cpu=HOST.cpu, winHand=(cpu+1)%3;               // 컴퓨터의 손을 이기는 손
+  const board=ST.alive.map(id=>{
+    const h=HOST.rps[id];
+    return {id, hand:h!=null?h:null, win:h===winHand};
+  });
+  const stay=board.filter(b=>!b.win).map(b=>b.id);     // 지거나 비기거나 미제출 → 잔류
+  const escaped=board.length-stay.length;
+  ST.cpu=cpu;
+  const handTxt=b=>b.hand==null?"미제출":RPS[b.hand].e+" "+RPS[b.hand].n;
+
+  if(stay.length===1){
+    const L=stay[0];
+    ST.phase="result"; ST.loser=L; ST.lastLoser=L;
+    ST.note=ST.rpsRound+"라운드 · 컴퓨터 "+RPS[cpu].e+" "+RPS[cpu].n;
+    ST.board=board.map(b=>({id:b.id, loser:b.id===L, label:handTxt(b)}));
+    return netBroadcast();
+  }
+  const next = stay.length===0 ? ST.alive.slice() : stay;   // 전원 승리면 무효 처리
+  if(stay.length===0) board.forEach(b=>{ b.tag="무효"; });   // 이겼지만 아무도 못 빠지는 라운드
+  ST.phase="reveal"; ST.board=board;
+  ST.note = stay.length===0
+    ? "컴퓨터 "+RPS[cpu].e+" · 전원 승리 → 무효, 다시"
+    : "컴퓨터 "+RPS[cpu].e+" · "+(escaped?escaped+"명 탈출 · ":"")+stay.length+"명 잔류";
+  ST.remain=REVEAL_MS; HOST.phaseStart=Date.now(); HOST.lastB=0;
+  HOST.next={game:"rps", alive:next, rpsRound:ST.rpsRound+1};
+  netBroadcast();
+}
+
+function resolveRoul(){
+  const L=HOST.roulLoser;
+  ST.phase="result"; ST.loser=L; ST.lastLoser=L;
+  ST.note=ST.roster.length+"명 중 당첨";
+  ST.board=ST.roster.map(id=>({id, label:id===L?"🎯 당첨":"세이프", loser:id===L}));
+  netBroadcast();
+}
+
+function resolveReact(){
+  const rows=ST.roster.map(id=>{
+    const e=ST.entries[id]||{};
+    return {id, done:!!e.done, n:e.n||0,
+            avg:e.done?e.avg:99999, best:e.done?e.best:99999};
+  }).sort((a,b)=> a.avg-b.avg || a.best-b.best);
+  const L=rows[rows.length-1].id;
+  const top=rows[0];
+  ST.phase="result"; ST.loser=L; ST.lastLoser=L;
+  ST.note=top.done?("최고 평균 "+top.avg+"ms · "+REACT_TRIALS+"회 평균 기준"):(REACT_TRIALS+"회 평균 기준");
+  ST.board=rows.map(b=>({id:b.id, loser:b.id===L,
+    label:b.done?b.avg+"ms":(b.n?b.n+"/"+REACT_TRIALS+" 중단":"미참여")}));
+  netBroadcast();
 }
 
 function resolveNerve(){
@@ -614,13 +791,17 @@ function advance(){
   if(!n) return toLobby();
   ST.phase="play"; ST.entries={}; ST.board=null; ST.note=""; HOST.picks={};
   HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
-  ST.remain = n.game==="nerve" ? NV_COUNT : UNI_LIMIT;
-  ST.stage=null; ST.boom=false;
+  ST.remain = n.game==="nerve"?NV_COUNT : n.game==="rps"?RPS_LIMIT : UNI_LIMIT;
+  ST.stage=null; ST.boom=false; ST.cpu=null;
   if(n.game==="nerve"){
     ST.game="nerve"; ST.roundKey="nerve-"+Date.now().toString(36);
     ST.roster=n.roster; ST.rematch=n.rematch;
     HOST.fuse=FUSE_MIN+Math.random()*(FUSE_MAX-FUSE_MIN);   // 재대결마다 새로 뽑되, 역시 전원 동일
     HOST.goAt=0; HOST.boomAt=0; ST.stage="count";
+  }else if(n.game==="rps"){
+    ST.game="rps"; ST.roundKey="rps-"+Date.now().toString(36);
+    ST.alive=n.alive; ST.rpsRound=n.rpsRound;
+    HOST.rps={}; HOST.cpu=Math.floor(Math.random()*3);      // 라운드마다 컴퓨터 손을 새로
   }else{
     ST.game="unique"; ST.roundKey="uni-"+Date.now().toString(36);
     ST.alive=n.alive; ST.uniRound=n.uniRound; ST.maxNum=UNI_MAX;
@@ -664,11 +845,14 @@ function currentView(){
   if(Net.role==="guest"&&!Net.ok) return "lost";
   const m=ST;
   if(m.phase==="lobby") return "lobby";
-  const roster=m.game==="unique"?(m.alive||[]):(m.roster||[]);
+  const roster=(m.game==="unique"||m.game==="rps")?(m.alive||[]):(m.roster||[]);
   if(m.phase==="play"){
     if(roster.indexOf(ME.id)<0) return "spec:"+m.roundKey;
     if(m.game==="bomb") return "bomb:"+m.roundKey+":"+(m.holder===ME.id?"h":"w");
     if(m.game==="nerve") return "nerve:"+m.roundKey;
+    if(m.game==="roul") return "roul:"+m.roundKey;
+    if(m.game==="react") return "react:"+m.roundKey;
+    if(m.game==="rps") return "rps:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
     return "uni:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
   }
   if(m.phase==="reveal") return "reveal:"+m.roundKey+":"+m.note;
@@ -681,7 +865,8 @@ function render(){
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
-      nerve:vNerve, bomb:vBomb, uni:vUni, reveal:vReveal, result:vResult, spec:vSpec
+      nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps,
+      reveal:vReveal, result:vResult, spec:vSpec
      }[v.split(":")[0]]||vLobby)();
   }
   patch(); renderRoster(); renderTop();
@@ -978,10 +1163,197 @@ function vUni(){
   };
 }
 
+/* ---- 룰렛 돌리기 ---- */
+const roul={key:"",applied:false};
+function drawWheel(cv,ids){
+  const size=cv.clientWidth||280; if(!size) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(size*dpr); cv.height=Math.round(size*dpr);
+  const g=cv.getContext("2d"); if(!g) return;
+  g.setTransform(dpr,0,0,dpr,0,0);
+  const R=size/2, n=ids.length, slice=(Math.PI*2)/n;
+  g.clearRect(0,0,size,size);
+  ids.forEach((id,i)=>{
+    const a0=-Math.PI/2+i*slice;
+    let ci=i%WHEEL_COLORS.length;
+    if(n>1&&i===n-1&&ci===0) ci=1;                     // 첫 칸과 맞닿는 색이 겹치지 않게
+    g.beginPath(); g.moveTo(R,R); g.arc(R,R,R-2,a0,a0+slice); g.closePath();
+    g.fillStyle=WHEEL_COLORS[ci]; g.fill();
+    g.strokeStyle="rgba(23,19,14,.55)"; g.lineWidth=1.5; g.stroke();
+    g.save(); g.translate(R,R); g.rotate(a0+slice/2);
+    g.fillStyle="#17130E"; g.textAlign="right"; g.textBaseline="middle";
+    g.font="700 "+Math.max(10,Math.min(15,150/n+7))+"px 'IBM Plex Sans KR',sans-serif";
+    let t=nameOf(id);
+    while(t.length>1&&g.measureText(t).width>R*0.6) t=t.slice(0,-1);
+    g.fillText(t,R-14,0);
+    g.restore();
+  });
+}
+function applySpin(animate){
+  const m=ST,r=refs.roul;
+  if(!r||!r.cv||!m||m.game!=="roul"||m.stage!=="spin"||!m.spin) return;
+  if(roul.applied) return;
+  roul.applied=true;
+  if(!animate){ r.cv.style.transition="none"; r.cv.style.transform="rotate("+m.spin.deg+"deg)"; return; }
+  r.cv.style.transition="";
+  void r.cv.offsetHeight;                              // 리플로우 후 트랜지션 시작
+  r.cv.style.transform="rotate("+m.spin.deg+"deg)";
+  buzz([20,60,20,60,20]);
+}
+function vRoul(){
+  keepAwake(true);
+  const m=ST, isHost=(ME.id===m.hostId);
+  stage.innerHTML=
+    '<div class="eyebrow">룰렛 돌리기 · '+m.roster.length+'명</div>'+
+    '<h2 class="title" style="margin-top:-8px">'+(isHost?"돌릴 준비 됐나요?":"방장이 돌립니다")+'</h2>'+
+    '<div class="wheelwrap"><div class="wheelptr"></div>'+
+    '<canvas class="wheel" id="wh"></canvas><div class="wheelhub">☕</div></div>'+
+    (isHost?'<button class="btn" id="spin">돌리기</button>'
+           :'<div class="panel center"><span class="lead" id="rs">방장이 돌릴 때까지 기다려 주세요</span></div>')+
+    '<div class="panel"><ul class="rulelist">'+
+    '<li>룰렛 칸은 <b>지금 접속한 인원</b>으로 자동 생성됩니다.</li>'+
+    '<li><span class="hot">방장만</span> 돌릴 수 있고, 결과는 모두의 화면에 똑같이 나옵니다.</li>'+
+    '<li>바늘이 가리킨 사람이 커피를 삽니다.</li></ul></div>'+
+    '<div class="note" id="rn"></div>';
+  refs.roul={cv:$("#wh"), btn:$("#spin"), rs:$("#rs"), rn:$("#rn")};
+  if(roul.key!==m.roundKey){ roul.key=m.roundKey; roul.applied=false; }
+  requestAnimationFrame(()=>{ if(refs.roul&&refs.roul.cv) drawWheel(refs.roul.cv,m.roster); });
+  if(refs.roul.btn) refs.roul.btn.onclick=()=>{ netSend({t:"spin"}); buzz(30); };
+  applySpin(false);                                    // 이미 돌고 있던 판이면 결과 위치로 바로
+}
+
+/* ---- 반응속도 테스트 ---- */
+const rt={key:"",state:"idle",times:[],last:0,avg:0,goAt:0,to:0,done:false};
+function drawTrials(){
+  const r=refs.react; if(!r) return;
+  r.tr.innerHTML="";
+  for(let i=0;i<REACT_TRIALS;i++){
+    const d=document.createElement("span"), v=rt.times[i];
+    d.className="trial"+(v!=null?" on":"");
+    d.textContent=(i+1)+"회 "+(v!=null?v+"ms":"–");
+    r.tr.appendChild(d);
+  }
+}
+function paintReact(){
+  const r=refs.react; if(!r) return;
+  r.pad.dataset.s=rt.state;
+  const n=rt.times.length;
+  if(rt.state==="idle"){ r.pl.textContent=n?"탭해서 다음 회차":"탭해서 시작"; r.ps.textContent=n+" / "+REACT_TRIALS+" 완료"; }
+  else if(rt.state==="wait"){ r.pl.textContent="기다리세요"; r.ps.textContent="초록색이 되면 바로 탭"; }
+  else if(rt.state==="go"){ r.pl.textContent="지금!"; r.ps.textContent=""; }
+  else if(rt.state==="early"){ r.pl.textContent="너무 빨랐어요"; r.ps.textContent="탭해서 이 회차 다시"; }
+  else if(rt.state==="res"){ r.pl.textContent=rt.last+"ms"; r.ps.textContent=n+" / "+REACT_TRIALS+" · 탭해서 다음 회차"; }
+  else if(rt.state==="done"){ r.pl.textContent=rt.avg+"ms"; r.ps.textContent="평균 · 다른 사람을 기다리는 중"; }
+}
+function reactTap(){
+  if(rt.done||!ST||ST.phase!=="play"||ST.game!=="react") return;
+  if(rt.state==="idle"||rt.state==="early"||rt.state==="res"){
+    if(rt.times.length>=REACT_TRIALS) return;
+    rt.state="wait"; paintReact();
+    clearTimeout(rt.to);
+    rt.to=setTimeout(()=>{
+      if(rt.state!=="wait"||!ST||ST.game!=="react") return;
+      rt.state="go"; rt.goAt=Date.now(); paintReact(); buzz(15);
+    }, REACT_MIN+Math.random()*(REACT_MAX-REACT_MIN));
+    return;
+  }
+  if(rt.state==="wait"){                               // 초록불 전에 누름 → 이 회차 다시
+    clearTimeout(rt.to); rt.state="early"; paintReact(); buzz([40,40,40]); return;
+  }
+  if(rt.state==="go"){
+    rt.last=Date.now()-rt.goAt; rt.times.push(rt.last);
+    rt.state="res"; paintReact(); drawTrials(); buzz(15);
+    if(rt.times.length>=REACT_TRIALS){
+      rt.avg=Math.round(rt.times.reduce((a,b)=>a+b,0)/rt.times.length);
+      rt.done=true; rt.state="done"; paintReact();
+      netSend({t:"react", done:true, avg:rt.avg, best:Math.min.apply(null,rt.times)});
+    }else netSend({t:"react", n:rt.times.length});
+  }
+}
+function vReact(){
+  keepAwake(true);
+  const m=ST;
+  stage.innerHTML=
+    '<div class="eyebrow">반응속도 테스트 · '+m.roster.length+'명</div>'+
+    '<h2 class="title" style="margin-top:-8px">초록불에 가장 빨리</h2>'+
+    '<div class="pad" id="pad" data-s="idle" role="button" tabindex="0">'+
+    '<span class="pl" id="pl">탭해서 시작</span>'+
+    '<span class="ps" id="ps">0 / '+REACT_TRIALS+' 완료</span></div>'+
+    '<div class="trials" id="tr"></div>'+
+    '<div class="panel"><ul class="rulelist">'+
+    '<li>탭하면 <span class="hot">빨간색</span>으로 바뀌고, 1.5~4.5초 뒤 초록불이 켜집니다.</li>'+
+    '<li>빨간색일 때 누르면 실패 — <b>그 회차를 다시</b> 합니다.</li>'+
+    '<li><span class="cool">초록불</span>이 켜지는 순간 최대한 빨리 탭하세요.</li>'+
+    '<li>'+REACT_TRIALS+'회 <b>평균</b>이 가장 느린 사람이 삽니다. 보통 250~300ms, 아주 빠르면 150ms 이하.</li>'+
+    '</ul></div><div class="note" id="rn2"></div>';
+  refs.react={pad:$("#pad"),pl:$("#pl"),ps:$("#ps"),tr:$("#tr"),rn:$("#rn2")};
+  if(rt.key!==m.roundKey){
+    clearTimeout(rt.to);
+    rt.key=m.roundKey; rt.state="idle"; rt.times=[]; rt.last=0; rt.avg=0; rt.done=false;
+  }
+  paintReact(); drawTrials();
+  refs.react.pad.addEventListener("pointerdown",e=>{ e.preventDefault(); reactTap(); });
+  refs.react.pad.addEventListener("keydown",e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat){ e.preventDefault(); reactTap(); } });
+}
+
+/* ---- 가위바위보 ---- */
+let rpsPick=null;
+function vRps(){
+  keepAwake(true);
+  const m=ST, mine=m.entries[ME.id], submitted=!!(mine&&mine.submitted);
+  rpsPick = submitted&&mine.mine!=null ? mine.mine : null;
+  stage.innerHTML=
+    '<div class="eyebrow">'+m.rpsRound+'라운드 · 남은 인원 '+m.alive.length+'명</div>'+
+    '<h2 class="title" style="margin-top:-8px">컴퓨터를 이기면 탈출</h2>'+
+    '<div class="deadline"><i id="bar"></i></div>'+
+    '<div class="vs"><div class="vsside"><span class="vsl">컴퓨터</span><span class="vshand">❓</span></div>'+
+    '<span class="vsx">VS</span>'+
+    '<div class="vsside"><span class="vsl">'+esc(ME.name)+'</span>'+
+    '<span class="vshand" id="mh">'+(rpsPick!=null?RPS[rpsPick].e:"–")+'</span></div></div>'+
+    '<div class="rpsrow" id="rr"></div>'+
+    '<button class="btn" id="ok">제출하기</button>'+
+    '<div class="panel"><ul class="rulelist">'+
+    '<li>컴퓨터의 손은 라운드 시작 때 이미 정해져 있고, <b>공개 전까지 어떤 기기에도 전송되지 않습니다.</b></li>'+
+    '<li><span class="cool">이기면 탈출</span> — 이번 판 커피에서 해방됩니다.</li>'+
+    '<li><span class="hot">지거나 비기면</span> 다음 라운드로. 미제출도 잔류입니다.</li>'+
+    '<li>마지막 한 명이 커피를 삽니다. 전원이 이기면 그 라운드는 무효.</li></ul></div>'+
+    '<div class="note" id="rn3"></div>';
+  const rr=$("#rr"), ok=$("#ok"), mh=$("#mh");
+  refs.rps={rr,ok,mh,bar:$("#bar"),rn:$("#rn3")};
+  RPS.forEach((h,i)=>{
+    const b=document.createElement("button");
+    b.innerHTML='<span class="h">'+h.e+'</span><span class="n">'+h.n+'</span>';
+    b.setAttribute("aria-pressed",String(rpsPick===i));
+    b.disabled=submitted;
+    b.onclick=()=>{
+      rpsPick=i; mh.textContent=h.e;
+      [...rr.children].forEach((c,ix)=>c.setAttribute("aria-pressed",String(ix===i)));
+    };
+    rr.appendChild(b);
+  });
+  if(submitted){ ok.disabled=true; ok.textContent="제출 완료 · 기다리는 중"; ok.classList.add("ghost"); }
+  ok.onclick=()=>{
+    if(rpsPick==null){ toast("낼 손을 골라주세요"); return; }
+    netSend({t:"rps", hand:rpsPick}); buzz(18);
+    ok.disabled=true; ok.textContent="제출 완료 · 기다리는 중"; ok.classList.add("ghost");
+    [...rr.children].forEach(c=>c.disabled=true);
+  };
+}
+
 /* ---- 공개 ---- */
 function vReveal(){
   const m=ST;
   const body = m.game==="nerve" ? boardHTML(m.board||[],null)
+    : m.game==="rps" ?
+      '<div class="cpuhand"><span class="lab2">컴퓨터가 낸 손</span>'+
+      '<span class="big">'+(m.cpu!=null?RPS[m.cpu].e:"❓")+'</span>'+
+      '<span class="nm2">'+(m.cpu!=null?esc(RPS[m.cpu].n):"")+'</span></div>'+
+      '<div class="revealgrid">'+(m.board||[]).map(b=>{
+        const cls=b.hand==null?"rv miss":(b.win?"rv uniq":"rv stay");
+        return '<span class="'+cls+'"><span>'+esc(emojiOf(b.id))+'</span><span>'+esc(nameOf(b.id))+'</span>'+
+          '<span class="num">'+(b.hand==null?"–":RPS[b.hand].e)+'</span>'+
+          '<span class="tg">'+(b.tag?esc(b.tag):(b.hand==null?"미제출":(b.win?"탈출":"잔류")))+'</span></span>';
+      }).join("")+'</div>'
     : '<div class="revealgrid">'+(m.board||[]).map(b=>{
         const cls=b.num==null?"rv miss":(b.unique?"rv uniq":"rv stay");
         return '<span class="'+cls+'"><span>'+esc(emojiOf(b.id))+'</span><span>'+esc(nameOf(b.id))+'</span>'+
@@ -989,7 +1361,8 @@ function vReveal(){
           '<span class="tg">'+(b.num==null?"미제출":(b.unique?"탈출":"잔류"))+'</span></span>';
       }).join("")+'</div>';
   stage.innerHTML='<div class="eyebrow">'+esc(m.note||"공개")+'</div>'+
-    '<h2 class="title" style="margin-top:-8px">'+(m.game==="nerve"?"점수 공개":"숫자 공개")+'</h2>'+
+    '<h2 class="title" style="margin-top:-8px">'+
+      (m.game==="nerve"?"점수 공개":m.game==="rps"?"결과 공개":"숫자 공개")+'</h2>'+
     body+'<div class="panel center"><span class="lead">다음 라운드까지 '+
     '<b id="rc" style="color:var(--amber);font-family:var(--mono)">6</b>초</span></div>';
   refs.rc=$("#rc");
@@ -1081,6 +1454,24 @@ function patch(){
     const done=m.alive.filter(id=>m.entries[id]&&m.entries[id].submitted).length;
     refs.uni.un.textContent="남은 시간 "+Math.ceil(left/1000)+"초 · "+done+"/"+m.alive.length+"명 제출";
   }
+  if(refs.roul&&m.phase==="play"&&m.game==="roul"){
+    const spinning=(m.stage==="spin");
+    if(spinning) applySpin(true);
+    if(refs.roul.btn){ refs.roul.btn.disabled=spinning; refs.roul.btn.textContent=spinning?"도는 중…":"돌리기"; }
+    if(refs.roul.rs) refs.roul.rs.textContent=spinning?"룰렛이 돌아가는 중…":"방장이 돌릴 때까지 기다려 주세요";
+    refs.roul.rn.textContent=m.roster.length+"칸 · 접속한 인원으로 자동 생성";
+  }
+  if(refs.react&&m.phase==="play"&&m.game==="react"){
+    const fin=m.roster.filter(id=>m.entries[id]&&m.entries[id].done).length;
+    refs.react.rn.textContent="남은 시간 "+Math.ceil(getRemain()/1000)+"초 · "+fin+"/"+m.roster.length+"명 완료";
+  }
+  if(refs.rps&&m.phase==="play"&&m.game==="rps"){
+    const left=getRemain();
+    refs.rps.bar.style.width=(left/RPS_LIMIT*100)+"%";
+    refs.rps.bar.parentNode.classList.toggle("warn",left<6000);
+    const done=m.alive.filter(id=>m.entries[id]&&m.entries[id].submitted).length;
+    refs.rps.rn.textContent="남은 시간 "+Math.ceil(left/1000)+"초 · "+done+"/"+m.alive.length+"명 제출";
+  }
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
 }
 
@@ -1089,7 +1480,7 @@ let rk="";
 function renderRoster(){
   if(!ST||!Net.role){ rosterEl.innerHTML=""; rk=""; return; }
   const m=ST;
-  let ids = (m.phase==="play"&&m.game==="unique") ? m.alive.slice()
+  let ids = (m.phase==="play"&&(m.game==="unique"||m.game==="rps")) ? m.alive.slice()
           : (m.phase==="play") ? m.roster.slice()
           : m.order.filter(id=>m.players[id].on);
   const key=ids.join(",")+"|"+m.phase+m.game+m.holder+m.roundKey;
@@ -1114,10 +1505,14 @@ function renderRoster(){
       else t="대기";
     }else if(m.phase==="play"&&m.game==="bomb"){
       if(id===m.holder){ t="💣"; c.className+=" holder"; }
-    }else if(m.phase==="play"&&m.game==="unique"){
+    }else if(m.phase==="play"&&(m.game==="unique"||m.game==="rps")){
       const e=m.entries[id];
       t=(e&&e.submitted)?"✓":"…";
       if(e&&e.submitted) c.className+=" safe";
+    }else if(m.phase==="play"&&m.game==="react"){
+      const e=m.entries[id];
+      if(e&&e.done){ t=e.avg+"ms"; c.className+=" safe"; }
+      else t=((e&&e.n)||0)+"/"+REACT_TRIALS;
     }
     cs.textContent=t;
   });
