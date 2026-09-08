@@ -37,6 +37,8 @@ img{max-width:100%}
 .dot.idle{background:var(--muted);box-shadow:none}
 .me-chip{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);background:var(--surface);
   border:1px solid var(--line);border-radius:999px;padding:4px 9px}
+.abortbtn{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;color:var(--ember);
+  background:rgba(255,92,62,.14);border:1px solid rgba(255,92,62,.5);white-space:nowrap}
 #stage{flex:1;padding:18px 16px 8px;display:flex;flex-direction:column;gap:16px}
 
 .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
@@ -261,6 +263,7 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
   <header class="topbar">
     <div class="brand"><span class="cup">☕</span> 커피 결투장</div>
     <div class="spacer"></div>
+    <button class="abortbtn hidden" id="abort">■ 중단</button>
     <div class="me-chip hidden" id="meChip"></div>
     <div class="livecount"><span class="dot idle" id="liveDot"></span><span id="liveNum">–</span></div>
   </header>
@@ -573,7 +576,7 @@ function startGame(g,trials){
   HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
   ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT
             : g==="react"?REACT_LIMIT : g==="rps"?RPS_LIMIT : 0;
-  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null;
+  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.aborted=false;
   if(g==="nerve"){
     // 이번 라운드의 폭탄 시간은 단 하나. 전원에게 똑같이 적용되며 방장 기기 밖으로 나가지 않는다.
     HOST.fuse=FUSE_MIN+Math.random()*(FUSE_MAX-FUSE_MIN);
@@ -591,9 +594,11 @@ function startGame(g,trials){
   netBroadcast();
 }
 function toLobby(){
+  ST.aborted = (ST.phase==="play"||ST.phase==="reveal");   // 결과를 못 보고 접은 판인지
   ST.phase="lobby"; ST.game=null; ST.roundKey=null; ST.entries={}; ST.board=null;
   ST.lastLoser=ST.loser||ST.lastLoser; ST.loser=null; ST.note="";
-  HOST.picks={}; HOST.next=null;
+  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null;
+  HOST.picks={}; HOST.rps={}; HOST.next=null;
   netBroadcast();
 }
 
@@ -872,7 +877,12 @@ function currentView(){
   return "lobby";
 }
 
+let prevPhase="";
 function render(){
+  const p=ST?ST.phase:"";
+  if(prevPhase&&prevPhase!=="lobby"&&p==="lobby"&&ST&&ST.aborted&&Net.role!=="host")
+    toast("방장이 게임을 중단했어요");
+  prevPhase=p;
   const v=currentView();
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
@@ -885,7 +895,11 @@ function render(){
 }
 function renderTop(){
   const mc=$("#meChip"), dot=$("#liveDot"), num=$("#liveNum");
-  if(ME.name){ mc.classList.remove("hidden"); mc.textContent=ME.emoji+" "+ME.name; }
+  // 진행 중인 게임을 방장이 언제든 접고 다시 고를 수 있게
+  const canAbort = !!(ST && Net.role==="host" && ST.phase && ST.phase!=="lobby");
+  $("#abort").classList.toggle("hidden", !canAbort);
+  // 좁은 화면에서 상단이 넘치지 않도록, 중단 버튼이 뜨면 이름 칩은 접는다
+  if(ME.name&&!canAbort){ mc.classList.remove("hidden"); mc.textContent=ME.emoji+" "+ME.name; }
   else mc.classList.add("hidden");
   if(!Net.role){ dot.className="dot idle"; num.textContent="–"; return; }
   const on=ST?ST.order.filter(id=>ST.players[id].on).length:0;
@@ -1104,7 +1118,7 @@ function vNerve(){
     paintNv({state:"wait", score:Math.round(held/10), held});   // 폭발 여부는 방장이 판정
   };
   function loop(){
-    if(!nv.holding) return;
+    if(!nv.holding||!refs.nv){ nv.holding=false; return; }   // 판이 바뀌면 루프도 멈춘다
     if(nv.goLocal){
       const held=heldNow();
       refs.nv.sc.textContent=Math.round(held/10);
@@ -1579,6 +1593,10 @@ if(typeof Peer==="undefined"){
 }else{
   setInterval(hostTick,100);
   setInterval(()=>patch(),100);
+  $("#abort").onclick=()=>{
+    if(!ST||Net.role!=="host"||ST.phase==="lobby") return;
+    if(confirm("진행 중인 게임을 중단하고 게임 선택으로 돌아갈까요?")) netSend({t:"lobby"});
+  };
   const h=(location.hash||"").replace("#","").toUpperCase();
   if(ME.name && h.length===4) joinRoom(h); else render();
 }
