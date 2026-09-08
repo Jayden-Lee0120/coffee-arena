@@ -443,7 +443,8 @@ function startGame(g){
   ST.phase="play"; ST.game=g; ST.roundKey=g+"-"+Date.now().toString(36);
   ST.roster=roster.slice(); ST.entries={}; ST.board=null; ST.note=""; ST.loser=null;
   ST.rematch=0; ST.from=null; ST.passes=0;
-  HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null;
+  HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
+  ST.remain = g==="nerve"?NERVE_LIMIT : g==="unique"?UNI_LIMIT : 0;   // 첫 방송부터 올바른 잔여시간
   if(g==="bomb"){ ST.holder=roster[Math.floor(Math.random()*roster.length)]; HOST.handAt=Date.now();
     HOST.bombStart=Date.now(); HOST.bombTick=Date.now(); }
   if(g==="unique"){ ST.alive=roster.slice(); ST.uniRound=1; ST.maxNum=clamp(roster.length*2,10,50); }
@@ -524,7 +525,7 @@ function resolveNerve(){
   let low=board.filter(b=>b.score===min);
   if(low.length>1 && ST.rematch<MAX_REMATCH){
     ST.phase="reveal"; ST.board=board; ST.note=low.length+"명 동점 → 재대결";
-    HOST.phaseStart=Date.now();
+    ST.remain=REVEAL_MS; HOST.phaseStart=Date.now(); HOST.lastB=0;
     HOST.next={game:"nerve", roster:low.map(b=>b.id), rematch:ST.rematch+1};
     return netBroadcast();
   }
@@ -549,7 +550,8 @@ function resolveUnique(){
     netBroadcast();
   };
   const cont=(ids,note)=>{
-    ST.phase="reveal"; ST.board=board; ST.note=note; HOST.phaseStart=Date.now();
+    ST.phase="reveal"; ST.board=board; ST.note=note;
+    ST.remain=REVEAL_MS; HOST.phaseStart=Date.now(); HOST.lastB=0;
     HOST.next={game:"unique", alive:ids, uniRound:ST.uniRound+1};
     netBroadcast();
   };
@@ -570,7 +572,8 @@ function advance(){
   const n=HOST.next;
   if(!n) return toLobby();
   ST.phase="play"; ST.entries={}; ST.board=null; ST.note=""; HOST.picks={};
-  HOST.phaseStart=Date.now(); HOST.next=null;
+  HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
+  ST.remain = n.game==="nerve" ? NERVE_LIMIT : UNI_LIMIT;
   if(n.game==="nerve"){
     ST.game="nerve"; ST.roundKey="nerve-"+Date.now().toString(36);
     ST.roster=n.roster; ST.rematch=n.rematch;
@@ -783,7 +786,6 @@ function vNerve(){
       '<li>손을 떼면 그 순간 점수 <span class="cool">확정</span>. 기회는 한 번뿐.</li>'+
       '<li>최저 점수가 삽니다. 동점이면 그 사람들끼리 재대결.</li></ul></div>'+
       '<div class="note" id="nn"></div>';
-  }
   refs.nv={hb:$("#hb"),hl:$("#hl"),hs:$("#hs"),sc:$("#sc"),bar:$("#bar"),nn:$("#nn")};
   if(nv.key!==m.roundKey){
     nv.key=m.roundKey; nv.fuse=FUSE_MIN+Math.random()*(FUSE_MAX-FUSE_MIN);
