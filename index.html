@@ -362,9 +362,15 @@ function choKey(w){
   return (a&&b)?a+b:null;
 }
 const CHO_WORDS=new Set(CHO_SEED);
+const CHO_DOUBLE=new Set(["ㄲ","ㄸ","ㅃ","ㅆ","ㅉ"]);
 const CHO_PAIRS=(function(){
   const s=new Set();
-  CHO_SEED.forEach(w=>{ const k=choKey(w); if(k) s.add(k); });
+  CHO_SEED.forEach(w=>{
+    const k=choKey(w);
+    if(!k) return;
+    if(CHO_DOUBLE.has(k[0])&&CHO_DOUBLE.has(k[1])) return;   // 쌍자음이 둘 다인 조합은 출제하지 않는다
+    s.add(k);
+  });
   return [...s];
 })();
 
