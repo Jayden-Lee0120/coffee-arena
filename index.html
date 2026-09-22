@@ -247,6 +247,12 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .verdict .face{font-size:54px;line-height:1}
 .verdict .who{font-family:var(--display);font-size:31px;margin-top:8px;line-height:1.2}
 .verdict .who span{color:var(--ember)}
+.verdict.good{background:linear-gradient(180deg,rgba(245,165,36,.18),rgba(245,165,36,.04));
+  border-color:rgba(245,165,36,.5)}
+.verdict.good .who span{color:var(--amber)}
+.pchip.hit{border-color:var(--amber);background:rgba(245,165,36,.18);color:var(--amber);font-weight:700}
+.gcard.special{background:var(--surface2)}
+.gcard.special .nm{color:var(--amber)}
 .verdict .sub{color:var(--muted);font-size:13px;margin-top:6px;font-family:var(--mono)}
 
 .roster{border-top:1px solid var(--line);padding:11px 16px 16px;display:flex;flex-wrap:wrap;gap:6px;
@@ -315,8 +321,13 @@ const GAMES={
   roul:{icon:"🎡",name:"룰렛 돌리기",ds:"접속한 인원으로 룰렛이 자동으로 만들어집니다. 방장이 돌려서 걸린 사람이 삽니다."},
   react:{icon:"⚡",name:"반응속도 테스트",ds:"초록불이 켜지면 바로 탭. 여러 번 중 가장 빠른 기록으로 겨루고, 그게 제일 느린 사람이 삽니다."},
   rps:{icon:"✊",name:"가위바위보",ds:"컴퓨터와 한판. 이긴 사람은 그 자리에서 탈출하고, 지거나 비기면 다음 라운드로."},
-  cho:{icon:"🔠",name:"초성 퀴즈",ds:"뜬 자음 두 개로 시작하는 진짜 단어를 가장 빨리 적으세요. 제출 순서가 곧 순위입니다."}
+  cho:{icon:"🔠",name:"초성 퀴즈",ds:"뜬 자음 두 개로 시작하는 진짜 단어를 가장 빨리 적으세요. 제출 순서가 곧 순위입니다."},
+  cafe:{icon:"🏪",name:"카페 랜덤 고르기",ds:"방장이 후보 카페를 적으면 룰렛으로 오늘 갈 곳을 정합니다. 커피값과는 별개예요."},
+  random:{icon:"🎲",name:"게임 랜덤 고르기",ds:"아래 게임 중 하나를 무작위로 골라 그대로 시작합니다."}
 };
+const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho"];   // 무작위 대상
+const MENU=["cafe","random"].concat(PLAY_GAMES);
+const MAX_CAFE=20;
 const WHEEL_COLORS=["#F5A524","#FF5C3E","#4ED9A4","#C97B2E","#7FB0A0"];
 const CHO_LIMIT=60000;
 
@@ -468,13 +479,17 @@ async function hostRoom(){
 }
 
 function wireHostConn(c){
+  // 기기에 따라 'open' 보다 첫 데이터가 먼저 도착한다. 그때 conns 에 없으면 그 사람에게만
+  // 상태가 영영 안 가서 접속 화면에 갇히므로, 어느 쪽이 먼저 오든 여기서 등록한다.
+  const register=()=>{ if(!Net.conns.has(c.peer)) Net.conns.set(c.peer,c); };
   c.on("open",()=>{
-    Net.conns.set(c.peer,c);
-    c.send({t:"hello", you:c.peer, code:Net.code});
+    register();
+    try{ c.send({t:"hello", you:c.peer, code:Net.code}); }catch(e){}
     netBroadcast();
   });
   c.on("data",d=>{
     if(!d||typeof d!=="object") return;
+    register();
     if(d.t==="join"){
       if(!ST.players[c.peer] && Object.keys(ST.players).length>=MAXP){
         try{ c.send({t:"full"}); }catch(e){}
@@ -482,7 +497,9 @@ function wireHostConn(c){
       }
       ST.players[c.peer]={name:String(d.name||"익명").slice(0,8), emoji:String(d.emoji||"👤").slice(0,4), on:true};
       if(ST.order.indexOf(c.peer)<0) ST.order.push(c.peer);
-      netBroadcast(); return;
+      netBroadcast();
+      setTimeout(netBroadcast,400);        // 채널이 늦게 열리는 기기 대비
+      return;
     }
     handleAction(c.peer,d);
   });
@@ -505,7 +522,15 @@ async function joinRoom(code){
     const to=setTimeout(()=>{ if(!opened){ showFatal({type:"peer-unavailable"}); } },12000);
     c.on("open",()=>{
       opened=true; clearTimeout(to); Net.hostConn=c; Net.ok=true; screen="game";
-      c.send({t:"join", name:ME.name, emoji:ME.emoji});
+      const join=()=>{ try{ c.send({t:"join", name:ME.name, emoji:ME.emoji}); }catch(e){} };
+      join();
+      // 연결은 됐는데 방 상태가 안 오면 접속 화면에 갇힌다. 몇 번 더 조르고, 그래도 없으면 알린다.
+      let tries=0;
+      const nag=setInterval(()=>{
+        if(ST||!Net.hostConn){ clearInterval(nag); return; }
+        if(++tries>5){ clearInterval(nag); showFatal({type:"nostate"}); return; }
+        join();
+      },1500);
       location.hash=code;
       render();
     });
@@ -531,6 +556,7 @@ function initHostState(){
     players:{}, order:[],
     phase:"lobby", game:null, roundKey:null, stage:null, boom:false, spin:null,
     roster:[], alive:[], uniRound:1, maxNum:20, rpsRound:1, cpu:null, trials:REACT_TRIALS, cho:null,
+    cafes:[], cafePick:null,
     holder:null, from:null, passes:0,
     entries:{}, board:null, note:"", loser:null, lastLoser:null,
     rematch:0, remain:0
@@ -585,7 +611,7 @@ function lookupWord(w){
 function handleAction(from,d){
   if(Net.role!=="host"||!ST) return;
   switch(d.t){
-    case "start": if(from!==ST.hostId) return; return startGame(d.game,d.trials);
+    case "start": if(from!==ST.hostId) return; return startGame(d.game,d.trials,d.cafes);
     case "lobby": if(from!==ST.hostId) return; return toLobby();
     case "nerve": {
       if(ST.phase!=="play"||ST.game!=="nerve") return;
@@ -656,6 +682,27 @@ function handleAction(from,d){
       });
       return;
     }
+    case "cafeAdd": {
+      if(from!==ST.hostId||ST.game!=="cafe"||ST.stage!=="setup") return;
+      const n=String(d.name||"").trim().slice(0,16);
+      if(!n||ST.cafes.length>=MAX_CAFE||ST.cafes.indexOf(n)>=0) return;
+      ST.cafes.push(n); return netBroadcast();
+    }
+    case "cafeDel": {
+      if(from!==ST.hostId||ST.game!=="cafe"||ST.stage!=="setup") return;
+      const i=Math.round(d.i);
+      if(i<0||i>=ST.cafes.length) return;
+      ST.cafes.splice(i,1); return netBroadcast();
+    }
+    case "cafeSpin": {
+      if(from!==ST.hostId||ST.game!=="cafe"||ST.stage!=="setup") return;
+      const n=ST.cafes.length; if(!n) return;
+      const k=Math.floor(Math.random()*n), slice=360/n, center=(k+0.5)*slice;
+      const jitter=(Math.random()-0.5)*slice*0.7;
+      HOST.cafeIdx=k; HOST.spinAt=Date.now(); ST.stage="spin";
+      ST.spin={deg:Math.round((360*6+(360-center-jitter))*100)/100, dur:ROUL_SPIN};
+      return netBroadcast();
+    }
     case "spin": {
       if(ST.phase!=="play"||ST.game!=="roul") return;
       if(from!==ST.hostId) return;                       // 룰렛은 방장만 돌린다
@@ -683,8 +730,8 @@ function handleAction(from,d){
   }
 }
 
-function startGame(g,trials){
-  if(!GAMES[g]) return;
+function startGame(g,trials,cafes){
+  if(!GAMES[g]||g==="random") return;
   const roster=onlineIds();
   if(!roster.length) return;
   if(g==="react") ST.trials=clamp(Math.round(trials||REACT_TRIALS),1,20);
@@ -711,6 +758,12 @@ function startGame(g,trials){
     HOST.cho=CHO_PAIRS[Math.floor(Math.random()*CHO_PAIRS.length)];
     ST.cho=null; ST.stage="count";
     HOST.taken={}; HOST.seq=0;
+  }
+  if(g==="cafe"){
+    ST.stage="setup"; ST.cafePick=null; HOST.cafeIdx=-1; HOST.spinAt=0;
+    ST.cafes=Array.isArray(cafes)
+      ? cafes.map(s=>String(s).trim().slice(0,16)).filter((s,i,a)=>s&&a.indexOf(s)===i).slice(0,MAX_CAFE)
+      : [];
   }
   if(g==="bomb"){ ST.holder=roster[Math.floor(Math.random()*roster.length)]; HOST.handAt=Date.now();
     HOST.bombStart=Date.now(); HOST.bombTick=Date.now();
@@ -790,6 +843,16 @@ function hostTick(){
   if(ST.phase==="play"&&ST.game==="roul"){
     if(ST.stage==="spin"&&now-HOST.spinAt>=ROUL_SPIN+700) resolveRoul();
     return;                                   // 대기 중에는 바뀌는 게 없으니 방송하지 않는다
+  }
+
+  if(ST.phase==="play"&&ST.game==="cafe"){
+    if(ST.stage==="spin"&&now-HOST.spinAt>=ROUL_SPIN+700){
+      ST.phase="result"; ST.loser=null; ST.board=null;
+      ST.cafePick=ST.cafes[HOST.cafeIdx]||"";
+      ST.note=ST.cafes.length+"곳 중에서";
+      netBroadcast();
+    }
+    return;
   }
 
   if(ST.phase==="play"&&ST.game==="react"){
@@ -1001,6 +1064,7 @@ function showFatal(e){
   : t==="full"            ? "방이 가득 찼어요 (최대 "+MAXP+"명)."
   : t==="browser-incompatible" ? "이 브라우저는 지원하지 않아요. Chrome이나 Safari로 열어 주세요."
   : t==="timeout"         ? "연결이 오래 걸려요. 네트워크를 확인하고 다시 시도해 주세요."
+  : t==="nostate"         ? "방에는 닿았는데 방 정보를 받지 못했어요. 방장 화면이 켜져 있는지 확인하고 다시 시도해 주세요."
   : "연결에 실패했어요. 다시 시도해 주세요.";
   viewKey=""; render();
 }
@@ -1024,6 +1088,7 @@ function currentView(){
     if(m.game==="react") return "react:"+m.roundKey;
     if(m.game==="rps") return "rps:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
     if(m.game==="cho") return "cho:"+m.roundKey;
+    if(m.game==="cafe") return "cafe:"+m.roundKey;
     return "uni:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
   }
   if(m.phase==="reveal") return "reveal:"+m.roundKey+":"+m.note;
@@ -1041,7 +1106,7 @@ function render(){
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
-      nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps, cho:vCho,
+      nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps, cho:vCho, cafe:vCafe,
       reveal:vReveal, result:vResult, spec:vSpec
      }[v.split(":")[0]]||vLobby)();
   }
@@ -1153,6 +1218,9 @@ function vLost(){
 
 /* ---- 로비 ---- */
 let reactN=(function(){ const v=parseInt(lsGet("ca_rt")||"5",10); return [3,5,10].indexOf(v)<0?5:v; })();
+// 방장이 적어 둔 후보 카페. 다음에 또 쓰도록 이 기기에 남겨 둔다.
+let cafeList=(function(){ try{ const a=JSON.parse(lsGet("ca_cafes")||"[]"); return Array.isArray(a)?a.slice(0,MAX_CAFE):[]; }catch(e){ return []; } })();
+const saveCafes=()=>lsSet("ca_cafes",JSON.stringify(cafeList));
 function vLobby(){
   keepAwake(Net.role==="host");
   const isHost=Net.role==="host";
@@ -1169,11 +1237,12 @@ function vLobby(){
     '<p class="lead" style="margin-top:6px">'+
       (isHost?"방장인 당신이 고른 게임으로 전원이 함께 시작합니다."
              :"게임 선택은 방장만 할 수 있어요. 고르면 자동으로 함께 시작됩니다.")+'</p></div>'+
-    '<div class="menu">'+Object.keys(GAMES).map(k=>{
-      const card='<button class="gcard" data-g="'+k+'"'+(isHost?"":" disabled")+'>'+
+    '<div class="menu">'+MENU.map(k=>{
+      const card='<button class="gcard'+(k==="cafe"||k==="random"?" special":"")+'" data-g="'+k+'"'+
+        (isHost?"":" disabled")+'>'+
         '<span class="ic">'+GAMES[k].icon+'</span><span>'+
         '<span class="nm">'+GAMES[k].name+'</span><span class="ds">'+GAMES[k].ds+'</span></span>'+
-        '<span class="go">'+(isHost?"시작 ▸":"")+'</span></button>';
+        '<span class="go">'+(isHost?(k==="cafe"?"고르기 ▸":k==="random"?"뽑기 ▸":"시작 ▸"):"")+'</span></button>';
       if(k!=="react"||!isHost) return card;
       return '<div class="gwrap">'+card+'<div class="opts" id="ropt">'+
         '<span class="ol">측정 횟수</span>'+
@@ -1183,8 +1252,14 @@ function vLobby(){
     '<div class="note" id="ln"></div>';
   stage.appendChild(box);
   if(isHost){
-    box.querySelectorAll(".gcard").forEach(b=>b.onclick=()=>
-      netSend({t:"start", game:b.dataset.g, trials:reactN}));
+    box.querySelectorAll(".gcard").forEach(b=>b.onclick=()=>{
+      let g=b.dataset.g;
+      if(g==="random"){                                   // 무작위로 하나 골라 그대로 시작
+        g=PLAY_GAMES[Math.floor(Math.random()*PLAY_GAMES.length)];
+        toast("🎲 "+GAMES[g].name+"!"); buzz([20,50,20]);
+      }
+      netSend({t:"start", game:g, trials:reactN, cafes:cafeList});
+    });
     const ro=box.querySelector("#ropt");
     if(ro) ro.querySelectorAll("button").forEach(b=>b.onclick=ev=>{
       ev.stopPropagation();
@@ -1377,15 +1452,15 @@ function vUni(){
 
 /* ---- 룰렛 돌리기 ---- */
 const roul={key:"",applied:false};
-function drawWheel(cv,ids){
-  const size=cv.clientWidth||280; if(!size) return;
+function drawWheel(cv,labels){
+  const size=cv.clientWidth||280; if(!size||!labels.length) return;
   const dpr=Math.min(2,window.devicePixelRatio||1);
   cv.width=Math.round(size*dpr); cv.height=Math.round(size*dpr);
   const g=cv.getContext("2d"); if(!g) return;
   g.setTransform(dpr,0,0,dpr,0,0);
-  const R=size/2, n=ids.length, slice=(Math.PI*2)/n;
+  const R=size/2, n=labels.length, slice=(Math.PI*2)/n;
   g.clearRect(0,0,size,size);
-  ids.forEach((id,i)=>{
+  labels.forEach((label,i)=>{
     const a0=-Math.PI/2+i*slice;
     let ci=i%WHEEL_COLORS.length;
     if(n>1&&i===n-1&&ci===0) ci=1;                     // 첫 칸과 맞닿는 색이 겹치지 않게
@@ -1395,15 +1470,15 @@ function drawWheel(cv,ids){
     g.save(); g.translate(R,R); g.rotate(a0+slice/2);
     g.fillStyle="#17130E"; g.textAlign="right"; g.textBaseline="middle";
     g.font="700 "+Math.max(10,Math.min(15,150/n+7))+"px 'IBM Plex Sans KR',sans-serif";
-    let t=nameOf(id);
+    let t=String(label);
     while(t.length>1&&g.measureText(t).width>R*0.6) t=t.slice(0,-1);
     g.fillText(t,R-14,0);
     g.restore();
   });
 }
-function applySpin(animate){
-  const m=ST,r=refs.roul;
-  if(!r||!r.cv||!m||m.game!=="roul"||m.stage!=="spin"||!m.spin) return;
+function applySpin(r,animate){
+  const m=ST;
+  if(!r||!r.cv||!m||m.stage!=="spin"||!m.spin) return;
   if(roul.applied) return;
   roul.applied=true;
   if(!animate){ r.cv.style.transition="none"; r.cv.style.transform="rotate("+m.spin.deg+"deg)"; return; }
@@ -1429,9 +1504,68 @@ function vRoul(){
     '<div class="note" id="rn"></div>';
   refs.roul={cv:$("#wh"), btn:$("#spin"), rs:$("#rs"), rn:$("#rn")};
   if(roul.key!==m.roundKey){ roul.key=m.roundKey; roul.applied=false; }
-  requestAnimationFrame(()=>{ if(refs.roul&&refs.roul.cv) drawWheel(refs.roul.cv,m.roster); });
+  requestAnimationFrame(()=>{ if(refs.roul&&refs.roul.cv) drawWheel(refs.roul.cv,m.roster.map(nameOf)); });
   if(refs.roul.btn) refs.roul.btn.onclick=()=>{ netSend({t:"spin"}); buzz(30); };
-  applySpin(false);                                    // 이미 돌고 있던 판이면 결과 위치로 바로
+  applySpin(refs.roul,false);                          // 이미 돌고 있던 판이면 결과 위치로 바로
+}
+
+/* ---- 카페 랜덤 고르기 ---- */
+function vCafe(){
+  keepAwake(false);
+  const m=ST, isHost=(ME.id===m.hostId);
+  stage.innerHTML=
+    '<div class="eyebrow">카페 랜덤 고르기</div>'+
+    '<h2 class="title" style="margin-top:-8px">'+(isHost?"후보를 적고 돌리세요":"방장이 후보를 적는 중")+'</h2>'+
+    '<div class="wheelwrap"><div class="wheelptr"></div>'+
+    '<canvas class="wheel" id="cwh"></canvas><div class="wheelhub">🏪</div></div>'+
+    (isHost?'<div class="addrow"><input type="text" id="cfi" maxlength="16" placeholder="카페 이름" '+
+      'autocomplete="off" enterkeyhint="done"><button id="cfa">추가</button></div>':'')+
+    '<div class="plist" id="cfl"></div>'+
+    (isHost?'<button class="btn" id="cfs">돌리기</button>'
+           :'<div class="panel center"><span class="lead" id="cfw">방장이 돌릴 때까지 기다려 주세요</span></div>')+
+    '<div class="note" id="cfn"></div>';
+  refs.cafe={cv:$("#cwh"), inp:$("#cfi"), add:$("#cfa"), list:$("#cfl"),
+             spin:$("#cfs"), wait:$("#cfw"), note:$("#cfn"), listKey:null};
+  if(roul.key!==m.roundKey){ roul.key=m.roundKey; roul.applied=false; }
+  if(isHost){
+    const add=()=>{
+      const v=refs.cafe.inp.value.trim();
+      if(!v) return;
+      if(ST.cafes.indexOf(v)>=0){ toast("이미 있어요"); return; }
+      if(ST.cafes.length>=MAX_CAFE){ toast("최대 "+MAX_CAFE+"곳까지예요"); return; }
+      netSend({t:"cafeAdd", name:v});
+      refs.cafe.inp.value=""; try{ refs.cafe.inp.focus(); }catch(e){}
+    };
+    refs.cafe.add.onclick=add;
+    refs.cafe.inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+    refs.cafe.spin.onclick=()=>{
+      if(!ST.cafes.length){ toast("후보를 한 곳 이상 적어주세요"); return; }
+      netSend({t:"cafeSpin"}); buzz(30);
+    };
+  }
+  requestAnimationFrame(()=>paintCafe());
+  applySpin(refs.cafe,false);
+}
+function paintCafe(){
+  const r=refs.cafe, m=ST; if(!r||!m||!m.cafes) return;
+  const isHost=(ME.id===m.hostId), spinning=(m.stage==="spin");
+  const key=m.cafes.join("|")+(spinning?"|s":"");
+  if(r.listKey!==key||!r.cv.width){          // 폭이 0일 때 그려졌으면 다시 그린다
+    r.listKey=key;
+    drawWheel(r.cv, m.cafes.length?m.cafes:["후보 없음"]);
+    r.list.innerHTML = m.cafes.length
+      ? m.cafes.map((c,i)=>'<div class="pchip"><span>'+esc(c)+'</span>'+
+          (isHost&&!spinning?'<button class="x" data-i="'+i+'" aria-label="삭제">×</button>':'')+'</div>').join("")
+      : '<span class="note">아직 후보가 없어요'+(isHost?" · 위에 적어서 추가하세요":"")+'</span>';
+    if(isHost&&!spinning) r.list.querySelectorAll(".x").forEach(b=>
+      b.onclick=()=>netSend({t:"cafeDel", i:+b.dataset.i}));
+    if(Net.role==="host"){ cafeList=m.cafes.slice(); saveCafes(); }
+  }
+  if(r.spin){ r.spin.disabled=spinning||!m.cafes.length; r.spin.textContent=spinning?"도는 중…":"돌리기"; }
+  if(r.inp) r.inp.disabled=spinning;
+  if(r.add) r.add.disabled=spinning;
+  if(r.wait) r.wait.textContent=spinning?"룰렛이 돌아가는 중…":"방장이 돌릴 때까지 기다려 주세요";
+  r.note.textContent=m.cafes.length+"곳 · 최대 "+MAX_CAFE+"곳";
 }
 
 /* ---- 반응속도 테스트 ----
@@ -1699,6 +1833,23 @@ function boardHTML(board,loser){
 function vResult(){
   keepAwake(false);
   const m=ST,L=m.loser;
+  if(m.game==="cafe"){
+    const isHost=(ME.id===m.hostId);
+    stage.innerHTML=
+      '<div class="verdict good"><div class="face">🏪</div>'+
+      '<div class="who">오늘의 카페는<br><span>'+esc(m.cafePick||"")+'</span></div>'+
+      '<div class="sub">'+esc(m.note||"")+'</div></div>'+
+      '<div class="plist">'+(m.cafes||[]).map(c=>
+        '<div class="pchip'+(c===m.cafePick?" hit":"")+'"><span>'+esc(c)+'</span></div>').join("")+'</div>'+
+      (isHost?'<div class="btnrow"><button class="btn ghost" id="again">다시 뽑기</button>'+
+        '<button class="btn" id="other">게임 고르기</button></div>'
+        :'<div class="panel center"><span class="lead">방장이 다음을 고르는 중이에요</span></div>');
+    if(isHost){
+      $("#again").onclick=()=>netSend({t:"start",game:"cafe",cafes:m.cafes});
+      $("#other").onclick=()=>netSend({t:"lobby"});
+    }
+    return;
+  }
   stage.innerHTML=
     '<div class="verdict"><div class="face">'+esc(emojiOf(L))+'</div>'+
     '<div class="who">오늘 커피는<br><span>'+esc(nameOf(L))+'</span>님이 쏩니다</div>'+
@@ -1771,9 +1922,13 @@ function patch(){
     const done=m.alive.filter(id=>m.entries[id]&&m.entries[id].submitted).length;
     refs.uni.un.textContent="남은 시간 "+Math.ceil(left/1000)+"초 · "+done+"/"+m.alive.length+"명 제출";
   }
+  if(refs.cafe&&m.phase==="play"&&m.game==="cafe"){
+    if(m.stage==="spin") applySpin(refs.cafe,true);
+    paintCafe();
+  }
   if(refs.roul&&m.phase==="play"&&m.game==="roul"){
     const spinning=(m.stage==="spin");
-    if(spinning) applySpin(true);
+    if(spinning) applySpin(refs.roul,true);
     if(refs.roul.btn){ refs.roul.btn.disabled=spinning; refs.roul.btn.textContent=spinning?"도는 중…":"돌리기"; }
     if(refs.roul.rs) refs.roul.rs.textContent=spinning?"룰렛이 돌아가는 중…":"방장이 돌릴 때까지 기다려 주세요";
     refs.roul.rn.textContent=m.roster.length+"칸 · 접속한 인원으로 자동 생성";
