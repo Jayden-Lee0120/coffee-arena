@@ -137,6 +137,30 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .passgrid button:not(:disabled):active{background:rgba(245,165,36,.18);border-color:var(--amber)}
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
+/* 참가자 관리 · 관전 */
+.mlist{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:11px;overflow:hidden}
+.mrow{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;padding:9px 11px;
+  background:var(--surface);font-size:13.5px}
+.mrow.spec{opacity:.55}
+.mrow .mn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .mn em{font-style:normal;font-size:11px;color:var(--amber);margin-left:3px}
+.mrow .mt{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mrow .kick{font-size:11px;padding:4px 9px;border-radius:999px;color:var(--ember);
+  background:rgba(255,92,62,.12);border:1px solid rgba(255,92,62,.45)}
+.btn.ghost.on{border-color:var(--amber);color:var(--amber)}
+.chip.spec{opacity:.5}
+.diag{margin:10px 0 0;font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+
+/* 게임 랜덤 고르기 */
+.pickbox{display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 18px;border-radius:16px;
+  background:var(--surface);border:1px solid var(--line);text-align:center;transition:border-color .2s}
+.pickbox.hit{border-color:var(--amber);background:linear-gradient(180deg,rgba(245,165,36,.16),rgba(245,165,36,.03))}
+.pickbox .pkic{font-size:52px;line-height:1}
+.pickbox .pknm{font-family:var(--display);font-size:27px;line-height:1.2}
+.pickbox.hit .pknm{color:var(--amber)}
+.pickbox .pkds{font-size:13px;color:var(--muted);max-width:32ch}
+
 /* 초성 퀴즈 */
 .chobox{display:flex;flex-direction:column;align-items:center;gap:7px;padding:18px 14px;border-radius:14px;
   background:var(--surface);border:1px solid var(--line)}
@@ -328,6 +352,7 @@ const GAMES={
 const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho"];   // 무작위 대상
 const MENU=["cafe","random"].concat(PLAY_GAMES);
 const MAX_CAFE=20;
+const PICK_SHUFFLE=3000, PICK_REVEAL=1600;   // 랜덤 고르기: 섞는 시간 / 공개 후 시작까지
 const WHEEL_COLORS=["#F5A524","#FF5C3E","#4ED9A4","#C97B2E","#7FB0A0"];
 const CHO_LIMIT=60000;
 
@@ -360,8 +385,23 @@ const CHO_SEED=(
 "치마 친구 침대 코피 콩밥 크기 키위 "+
 "타자 탁구 태양 택시 토끼 통증 튀김 특별 파도 파리 판사 팔목 편지 평가 평화 포도 표정 풍경 피부 피자 "+
 "필통 하늘 하루 학교 학생 한글 한복 항구 해변 해석 햇살 행동 행복 향기 허리 현관 형제 호수 혼자 화가 "+
-"화면 화분 환경 회사 후배 훈련 휴가 휴지 흑백 희망 힘줄"
-).split(" ");
+"화면 화분 환경 회사 후배 훈련 휴가 휴지 흑백 희망 힘줄 "+
+"간판 갈비 감독 강의 개미 객실 거지 건강 격려 견학 결심 경력 계약 고구마 고민 고집 골절 공책 관객 교복 "+
+"구석 국화 군대 굴뚝 궁전 귀가 그늘 금액 급식 기준 긴장 길목 김밥 "+
+"나이 낚시 난방 남매 낮잠 냉방 넥타이 노선 녹차 뇌물 누나 눈썹 늪지 "+
+"단점 달빛 담장 대기 대장 도끼 도움 독약 돌탑 동전 두께 등산 딸꾹 "+
+"마차 막내 만남 망치 매실 맹세 명단 모범 목장 무역 문단 물감 미래 미역 "+
+"바늘 박물관 반찬 밥상 방향 배낭 백성 번개 벌금 변명 보건 복도 본문 부상 분수 붕대 비용 빙수 "+
+"사막 산소 살림 상식 서랍 석유 선박 성공 소포 속옷 손해 수도 수술 시선 신뢰 실력 심부름 "+
+"악기 안내 암호 액자 양심 어둠 언어 얼룩 여권 연락 열정 영양 오빠 옥상 온천 왕국 외국 욕심 우물 원인 "+
+"유물 은혜 응원 의견 이익 인상 일정 임무 입원 "+
+"자랑 작업 장면 재산 저울 전쟁 정리 조상 종류 주문 줄자 중력 지갑 지진 진로 집중 "+
+"차표 참새 채소 천막 청년 초대 촬영 추위 출근 취미 층계 침묵 "+
+"컴퓨터 코스 콘텐츠 쿠키 크림 "+
+"탄생 태풍 토론 통일 퇴근 투표 튤립 파일 팥죽 폭우 표지 피해 필요 "+
+"하품 학년 한숨 항의 해답 행사 허락 헌법 협력 호흡 홍수 화살 확인 회복 효과 후손 휴식 흥미 "+
+"강물 거북 구멍 그늘막 나룻배 눈길 대나무 도토리 무지개 반달 밤하늘 병아리 사거리 소나무 손수건"
+).split(" ").filter(w=>w.length===2);
 const CHO_TABLE=["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
 function choOf(ch){
   const c=ch.charCodeAt(0)-0xAC00;
@@ -372,11 +412,80 @@ function choKey(w){
   const a=choOf(w[0]), b=choOf(w[1]);
   return (a&&b)?a+b:null;
 }
-const CHO_WORDS=new Set(CHO_SEED);
+/* 추가 낱말. 사람들이 실제로 칠 만한 흔한 두 글자 말을 최대한 넓게 담아,
+   위키낱말사전 조회까지 가지 않고 바로 인정되는 비율을 높인다. */
+const CHO_MORE=(
+"가게 가곡 가구 가난 가닥 가락 가루 가뭄 가발 가사 가수 가업 가열 가요 가운 가위 가입 가장 가정 가죽 "+
+"가짜 가치 각도 각오 각자 간격 간섭 간식 갈대 갈증 감각 감동 감사 감상 감성 감정 갑판 강당 강변 강사 "+
+"강연 강자 강제 강조 강좌 개교 개발 개방 개선 개성 개월 개인 개최 거래 거만 거미 거부 거실 거짓 건설 "+
+"건조 건축 검색 검토 게시 게임 격차 견해 결국 결론 결말 결석 결승 결정 결혼 겸손 경계 경비 경영 경우 "+
+"경쟁 경제 경치 경향 경험 계란 계속 계층 계획 고객 고급 고난 고대 고도 고독 고려 고령 고리 고문 고민 "+
+"고백 고생 고속 고용 고원 고장 고전 고정 고찰 고체 고추 고통 곡선 곤란 곤충 공개 공격 공고 공공 공동 "+
+"공무 공사 공식 공업 공연 공유 공정 공주 공중 공통 공포 공항 공해 과목 과속 과식 과실 과업 과장 과정 "+
+"과제 관계 관광 관념 관련 관리 관세 관점 관찰 광경 광고 광물 광산 광선 괴물 교과 교대 교도 교류 교사 "+
+"교외 교장 교재 교정 교체 교환 교회 구간 구경 구별 구분 구성 구속 구슬 구식 구역 구입 구절 구조 구청 "+
+"구축 구토 국기 국내 국립 국민 국어 국왕 국제 국토 군사 권력 권위 귀족 규모 규정 규제 균형 그룹 그릇 "+
+"극복 근거 근교 근로 근무 근본 근육 금리 금방 금속 금연 금지 급등 급여 기념 기능 기름 기반 기법 기본 "+
+"기사 기상 기색 기업 기온 기운 기적 기존 기지 기초 기타 기회 기획 깃발 깍지 껍질 꼭지 꽁치 꽃잎 꽃집 "+
+"꾀병 꾸중 꿀물 꿈속 끝장 끼니 "+
+"나물 나방 나이 낙원 난초 날짜 남성 남자 낭비 내년 내부 내용 내일 냄비 냉장 너비 노선 노트 녹색 논리 "+
+"논문 논쟁 놀이 농구 농담 농사 농업 농장 눈길 뉴스 느낌 늑대 "+
+"다발 다수 다음 단계 단독 단위 단점 단지 단체 담당 담요 답변 당시 당장 대구 대금 대량 대륙 대변 대부 "+
+"대비 대사 대상 대응 대중 대책 대체 대표 대형 대화 대회 덕분 도구 도난 도덕 도망 도서 도심 도입 도전 "+
+"도착 독립 독소 독자 독점 동기 동료 동시 동안 동양 동요 동원 동의 동작 동정 동지 동창 동포 동해 동행 "+
+"두려 두통 등급 등산 등장 뜻밖 "+
+"리듬 링크 마술 마약 마중 마차 마취 막대 만족 말투 매력 매점 매체 맨발 먹이 메모 메일 면적 면접 명령 "+
+"명예 명칭 모범 모습 모임 모집 목록 목사 목장 목적 몸살 몸집 무관 무기 무덤 무료 무리 무사 무술 무용 "+
+"문단 문법 문서 문의 문자 문장 문학 물가 물질 물체 미국 미인 민간 민속 민주 밀림 밀물 "+
+"바닥 바위 박스 반대 반란 반면 반복 반성 반응 반찬 발견 발달 발등 발명 발목 발생 발음 발전 방문 방식 "+
+"방안 방울 방지 방학 방향 배경 배구 배달 배려 배우 배출 백합 버릇 버섯 벌금 벌집 범위 범인 범죄 법률 "+
+"법원 법정 벼락 벽돌 변경 변동 변호 별빛 보고 보관 보급 보답 보도 보람 보름 보상 보석 보안 보장 보조 "+
+"보통 보호 복사 복수 복습 복지 본문 본부 본질 봄날 봉사 부담 부문 부분 부인 부장 부정 부족 부지 부탁 "+
+"부품 북부 분노 분량 분류 분리 분석 분야 분자 불꽃 불만 불안 불행 비교 비극 비난 비료 비만 비명 비율 "+
+"비중 비판 비평 빛깔 빵집 뼈대 "+
+"사건 사고 사례 사무 사물 사방 사상 사설 사업 사용 사원 사월 사이 사장 사전 사정 사촌 사탕 사표 사회 "+
+"사흘 삼촌 상금 상대 상류 상상 상식 상점 상징 상태 상표 상품 상황 새끼 새싹 색상 생명 생물 생산 생활 "+
+"서류 서명 서방 서열 서쪽 석탄 선거 선반 선수 선장 선전 선택 설계 설날 설명 섬유 성공 성과 성능 성당 "+
+"성명 성분 성숙 성인 성장 성적 성질 세금 세대 세력 세월 세탁 소개 소득 소망 소문 소방 소비 소속 소원 "+
+"소음 소재 소질 소포 속담 속도 손녀 손님 손발 손실 손해 솜씨 송곳 송편 수단 수도 수량 수면 수법 수분 "+
+"수산 수상 수염 수요 수입 수정 수준 수집 수출 수표 수필 수학 수행 순서 순위 숨결 숲속 스승 습관 습기 "+
+"승객 승리 승부 승자 시기 시대 시력 시립 시민 시선 시설 시야 시인 시작 시절 시점 시집 시청 시체 시험 "+
+"식빵 식사 식욕 식초 식탁 식품 신경 신고 신념 신뢰 신부 신분 신비 신선 신속 신용 신입 신자 신청 신체 "+
+"신화 실내 실례 실망 실습 실시 실용 실제 실천 실체 실패 실현 심리 심사 심정 십자 썰매 씨름 "+
+"아내 아래 악몽 악수 안내 안방 안전 안정 알약 암기 암살 압력 앞날 앞문 애정 액체 야채 약점 약초 양복 "+
+"양산 양심 어부 어업 어제 억양 언니 언덕 업무 업적 여건 여관 여권 여백 여성 여왕 여유 역할 연결 연극 "+
+"연료 연말 연설 연속 연휴 열기 열정 염려 영국 영어 영역 영웅 영향 예감 예금 예능 예방 예산 예상 예약 "+
+"예의 예절 예정 오락 오류 오염 오전 올해 옷감 와인 완성 외교 외모 외출 요구 요금 요소 요점 요청 욕망 "+
+"욕실 용도 용돈 용서 용어 우승 우연 우편 운반 운영 운전 울음 원가 원리 원본 원인 원장 월급 위기 위로 "+
+"위반 위생 위원 위치 유래 유머 유물 유산 유지 유학 유형 육군 육상 육지 음료 음성 응답 의견 의도 의무 "+
+"의미 의복 의식 의심 의지 의학 이력 이론 이모 이사 이상 이용 이익 이자 이전 이해 이후 인구 인력 인물 "+
+"인상 인쇄 인심 인원 인정 인체 인형 일반 일부 일상 일생 일자 일정 일종 일주 일치 임금 임무 입구 입금 "+
+"입력 입맛 입시 잉크 "+
+"자격 자금 자녀 자동 자료 자매 자백 자세 자식 자신 자원 자율 자취 자판 작년 작문 작물 작업 잔치 잠시 "+
+"잡지 장관 장교 장독 장미 장사 장소 장수 장점 장학 재능 재산 재생 재정 재주 재판 저장 저항 적성 적용 "+
+"전공 전국 전문 전부 전설 전시 전쟁 전체 전통 절망 절약 점검 점수 점심 점원 점포 접근 접시 정기 정년 "+
+"정답 정도 정리 정보 정부 정상 정원 정의 정지 정직 제도 제안 제약 제외 제자 제조 제품 제한 조국 조기 "+
+"조리 조상 조선 조심 조언 조작 조절 조정 조직 조카 존재 종교 종목 좌우 주먹 주문 주민 주사 주식 주위 "+
+"주장 주제 주차 주택 주황 줄자 중국 중년 중단 중력 중심 중앙 중학 증가 증거 증권 증상 지급 지능 지름 "+
+"지리 지방 지시 지역 지옥 지원 지위 지출 직선 직원 직장 진단 진로 진리 진심 진통 진행 질병 질서 집단 "+
+"집합 찜질 "+
+"차단 차례 차표 착각 참가 참여 참외 창고 창의 창작 창조 채점 처리 처방 처벌 처음 천국 천막 천재 철도 "+
+"첫날 청춘 체력 체온 체중 초반 초점 총리 총장 최고 최근 최대 최소 추석 추측 축소 출산 출석 출신 출연 "+
+"출입 출판 충고 충돌 취소 취업 취직 취향 측면 치료 치즈 친절 침실 칭찬 "+
+"카드 칼날 커피 코드 클럽 킬로 "+
+"타국 탁자 탄소 탈출 태도 토양 통계 통과 통로 통신 통장 통행 퇴원 투수 투자 튤립 특기 특성 특징 "+
+"파악 판단 판매 팔찌 패배 팽이 편견 편집 평균 평등 평면 평생 평소 폐지 포기 포장 폭력 폭탄 표면 표준 "+
+"표현 품질 풍선 풍속 필기 "+
+"하숙 학과 학급 학기 학력 학문 학술 학원 학회 한계 한옥 한잔 해결 해설 해안 해양 핵심 햇볕 행운 행위 "+
+"향수 혁명 현금 현대 현상 현실 현장 혈액 협회 형사 형성 형태 화장 화재 확대 활동 활용 황금 회원 회의 "+
+"회장 횡단 효도 효율 후반 후보 흉내 흔적"
+).split(" ").filter(w=>w.length===2);
+const CHO_ALL=CHO_SEED.concat(CHO_MORE);
+const CHO_WORDS=new Set(CHO_ALL);
 const CHO_DOUBLE=new Set(["ㄲ","ㄸ","ㅃ","ㅆ","ㅉ"]);
 const CHO_PAIRS=(function(){
   const s=new Set();
-  CHO_SEED.forEach(w=>{
+  CHO_ALL.forEach(w=>{
     const k=choKey(w);
     if(!k) return;
     if(CHO_DOUBLE.has(k[0])&&CHO_DOUBLE.has(k[1])) return;   // 쌍자음이 둘 다인 조합은 출제하지 않는다
@@ -444,11 +553,25 @@ function netBroadcast(){                     // 방장 → 전원
   render();
 }
 
+/* 휴대폰 통신망(특히 LTE)은 대칭형 NAT 을 쓰는 경우가 많아 STUN 만으로는 기기끼리 직접 연결되지
+   않는다. 그때는 TURN 서버가 중계해 줘야 붙는다 — 아이폰만 접속이 안 되던 증상의 가장 흔한 원인. */
+const PEER_CFG={
+  debug:0,
+  config:{
+    iceServers:[
+      {urls:"stun:stun.l.google.com:19302"},
+      {urls:"stun:stun1.l.google.com:19302"},
+      {urls:"turn:openrelay.metered.ca:80",  username:"openrelayproject", credential:"openrelayproject"},
+      {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"},
+      {urls:"turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject"}
+    ]
+  }
+};
 function makePeer(id){
   return new Promise((resolve,reject)=>{
-    const p=new Peer(id,{debug:0});
+    const p=new Peer(id,PEER_CFG);
     let settled=false;
-    const to=setTimeout(()=>{ if(!settled){ settled=true; try{p.destroy();}catch(e){} reject({type:"timeout"}); } },12000);
+    const to=setTimeout(()=>{ if(!settled){ settled=true; try{p.destroy();}catch(e){} reject({type:"timeout"}); } },20000);
     p.on("open",()=>{ if(settled) return; settled=true; clearTimeout(to); resolve(p); });
     p.on("error",e=>{ if(settled) return; settled=true; clearTimeout(to); try{p.destroy();}catch(x){} reject(e); });
   });
@@ -491,6 +614,11 @@ function wireHostConn(c){
     if(!d||typeof d!=="object") return;
     register();
     if(d.t==="join"){
+      if(HOST.kicked[c.peer] && Date.now()-HOST.kicked[c.peer]<60000){
+        try{ c.send({t:"kicked"}); }catch(e){}
+        setTimeout(()=>{ try{ c.close(); }catch(e){} },250);
+        return;
+      }
       if(!ST.players[c.peer] && Object.keys(ST.players).length>=MAXP){
         try{ c.send({t:"full"}); }catch(e){}
         return;
@@ -519,7 +647,7 @@ async function joinRoom(code){
     Net.peer=p; Net.role="guest"; Net.code=code; ME.id=p.id;
     const c=p.connect(PREFIX+code,{reliable:true});
     let opened=false;
-    const to=setTimeout(()=>{ if(!opened){ showFatal({type:"peer-unavailable"}); } },12000);
+    const to=setTimeout(()=>{ if(!opened){ showFatal({type:"nochannel"}); } },20000);
     c.on("open",()=>{
       opened=true; clearTimeout(to); Net.hostConn=c; Net.ok=true; screen="game";
       const join=()=>{ try{ c.send({t:"join", name:ME.name, emoji:ME.emoji}); }catch(e){} };
@@ -538,6 +666,7 @@ async function joinRoom(code){
       if(!d||typeof d!=="object") return;
       if(d.t==="state") applyState(d.s);
       else if(d.t==="full") showFatal({type:"full"});
+      else if(d.t==="kicked"){ Net.hostConn=null; showFatal({type:"kicked"}); }
     });
     const dead=()=>{ Net.ok=false; Net.hostConn=null; render(); };
     c.on("close",dead); c.on("error",dead);
@@ -564,7 +693,8 @@ function initHostState(){
   ST.players[ME.id]={name:ME.name, emoji:ME.emoji, on:true};
   ST.order.push(ME.id);
   HOST={picks:{}, rps:{}, cpu:0, bombStart:0, bombTick:0, phaseStart:0, handAt:0, lastB:0,
-        fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, taken:{}, seq:0, next:null};
+        fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, taken:{}, seq:0,
+        kicked:{}, pickGame:null, next:null};
 }
 
 /* 게스트에게 보내는 상태. ST.entries 에는 애초에 숫자를 담지 않으므로(HOST.picks 에만 보관)
@@ -582,30 +712,27 @@ function publicState(forId){
 }
 
 const onlineIds=()=> (ST?ST.order.filter(id=>ST.players[id]&&ST.players[id].on):[]);
+// 관전으로 빠진 사람은 새 판의 참가자 명단에서 제외된다
+const playingIds=()=> onlineIds().filter(id=>!ST.players[id].spec);
 
-/* 실제로 있는 단어인지 확인. 기본 목록에 있으면 즉시 통과하고,
-   없으면 위키낱말사전 → 위키백과 순으로 물어본다.
-   둘 다 "없다"고 답할 때만 탈락시키고, 조회 자체가 실패하면 인정한다(네트워크 때문에 판이 막히면 안 되므로). */
+/* 실제로 있는 낱말인지 확인.
+   위키백과는 인물·지명·상표 같은 표제어까지 잡혀서 "사전에 있는 단어"와 거리가 멀어 빼고,
+   낱말만 싣는 위키낱말사전만 본다. 기본 목록에 있으면 조회 없이 즉시 통과.
+   "없다"는 답을 받았을 때만 탈락시키고, 조회 자체가 실패하면 인정한다(판이 막히면 안 되므로). */
 function lookupWord(w){
   if(CHO_WORDS.has(w)) return Promise.resolve(true);
-  const hosts=["ko.wiktionary.org","ko.wikipedia.org"];
-  let errored=false;
-  const ask=i=>{
-    if(i>=hosts.length) return Promise.resolve(errored);
-    const ctl=new AbortController();
-    const timer=setTimeout(()=>ctl.abort(),3500);
-    return fetch("https://"+hosts[i]+"/w/api.php?action=query&format=json&origin=*&titles="+
-                 encodeURIComponent(w), {signal:ctl.signal})
-      .then(r=>r.ok?r.json():Promise.reject(new Error("http")))
-      .then(j=>{
-        const pages=j&&j.query&&j.query.pages;
-        for(const k in pages) if(!("missing" in pages[k])) return true;
-        return ask(i+1);
-      })
-      .catch(()=>{ errored=true; return ask(i+1); })
-      .then(v=>{ clearTimeout(timer); return v; });
-  };
-  return ask(0);
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),3500);
+  return fetch("https://ko.wiktionary.org/w/api.php?action=query&format=json&origin=*&titles="+
+               encodeURIComponent(w), {signal:ctl.signal})
+    .then(r=>r.ok?r.json():Promise.reject(new Error("http")))
+    .then(j=>{
+      const pages=j&&j.query&&j.query.pages;
+      for(const k in pages) if(!("missing" in pages[k])) return true;
+      return false;
+    })
+    .catch(()=>true)
+    .then(v=>{ clearTimeout(timer); return v; });
 }
 
 function handleAction(from,d){
@@ -682,6 +809,31 @@ function handleAction(from,d){
       });
       return;
     }
+    case "randomPick": {
+      if(from!==ST.hostId||ST.phase!=="lobby") return;
+      // 뽑은 게임은 공개 직전까지 방장만 알고 있어서 미리 볼 수 없다
+      HOST.pickGame=PLAY_GAMES[Math.floor(Math.random()*PLAY_GAMES.length)];
+      HOST.pickTrials=clamp(Math.round(d.trials||REACT_TRIALS),1,20);
+      HOST.phaseStart=Date.now(); HOST.lastB=0;
+      ST.phase="picking"; ST.stage="shuffle"; ST.pickGame=null;
+      ST.remain=PICK_SHUFFLE; ST.aborted=false;
+      return netBroadcast();
+    }
+    case "spec": {                                     // 각자 자기 관전 여부만 바꾼다
+      const p=ST.players[from]; if(!p) return;
+      p.spec=!!d.on;
+      return netBroadcast();
+    }
+    case "kick": {
+      if(from!==ST.hostId||d.id===ST.hostId) return;   // 방장은 자기를 못 내보낸다
+      const id=d.id, c=Net.conns.get(id);
+      if(c){ try{ c.send({t:"kicked"}); }catch(e){} setTimeout(()=>{ try{ c.close(); }catch(e){} },250); }
+      Net.conns.delete(id);
+      delete ST.players[id];
+      const i=ST.order.indexOf(id); if(i>=0) ST.order.splice(i,1);
+      HOST.kicked[id]=Date.now();                      // 바로 다시 들어오는 것 방지
+      return netBroadcast();
+    }
     case "cafeAdd": {
       if(from!==ST.hostId||ST.game!=="cafe"||ST.stage!=="setup") return;
       const n=String(d.name||"").trim().slice(0,16);
@@ -732,8 +884,8 @@ function handleAction(from,d){
 
 function startGame(g,trials,cafes){
   if(!GAMES[g]||g==="random") return;
-  const roster=onlineIds();
-  if(!roster.length) return;
+  const roster = g==="cafe" ? onlineIds() : playingIds();
+  if(!roster.length){ if(Net.role==="host") toast("참가할 사람이 없어요"); return; }
   if(g==="react") ST.trials=clamp(Math.round(trials||REACT_TRIALS),1,20);
   ST.phase="play"; ST.game=g; ST.roundKey=g+"-"+Date.now().toString(36);
   ST.roster=roster.slice(); ST.entries={}; ST.board=null; ST.note=""; ST.loser=null;
@@ -776,8 +928,8 @@ function toLobby(){
   ST.aborted = (ST.phase==="play"||ST.phase==="reveal");   // 결과를 못 보고 접은 판인지
   ST.phase="lobby"; ST.game=null; ST.roundKey=null; ST.entries={}; ST.board=null;
   ST.lastLoser=ST.loser||ST.lastLoser; ST.loser=null; ST.note="";
-  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.cho=null;
-  HOST.picks={}; HOST.rps={}; HOST.taken={}; HOST.seq=0; HOST.next=null;
+  ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.cho=null; ST.pickGame=null;
+  HOST.picks={}; HOST.rps={}; HOST.taken={}; HOST.seq=0; HOST.next=null; HOST.pickGame=null;
   netBroadcast();
 }
 
@@ -880,6 +1032,19 @@ function hostTick(){
     const pending=ST.roster.some(id=>{ const e=ST.entries[id]; return e&&e.checking; });
     if(settled||(ST.remain<=0&&!pending)) return resolveCho();
     if(ST.remain<=0&&now-HOST.phaseStart>CHO_LIMIT+5000) return resolveCho();  // 조회가 안 끝나도 종료
+    return beat();
+  }
+
+  if(ST.phase==="picking"){
+    if(ST.stage==="shuffle"){
+      ST.remain=Math.max(0,PICK_SHUFFLE-(now-HOST.phaseStart));
+      if(ST.remain>0) return beat();
+      ST.stage="reveal"; ST.pickGame=HOST.pickGame;      // 여기서 공개
+      HOST.phaseStart=now; ST.remain=PICK_REVEAL; HOST.lastB=0;
+      return netBroadcast();
+    }
+    ST.remain=Math.max(0,PICK_REVEAL-(now-HOST.phaseStart));
+    if(ST.remain<=0) return startGame(HOST.pickGame,HOST.pickTrials,cafeList);
     return beat();
   }
 
@@ -1063,9 +1228,13 @@ function showFatal(e){
   : t==="unavailable-id"  ? "방 코드를 만들지 못했어요. 잠시 후 다시 시도해 주세요."
   : t==="full"            ? "방이 가득 찼어요 (최대 "+MAXP+"명)."
   : t==="browser-incompatible" ? "이 브라우저는 지원하지 않아요. Chrome이나 Safari로 열어 주세요."
-  : t==="timeout"         ? "연결이 오래 걸려요. 네트워크를 확인하고 다시 시도해 주세요."
+  : t==="timeout"         ? "신호 서버에 닿지 못했어요. 네트워크를 확인하고 다시 시도해 주세요."
+  : t==="nochannel"       ? "방은 찾았는데 기기끼리 연결되지 않았어요. 와이파이와 LTE를 서로 바꿔서 다시 시도해 보세요."
   : t==="nostate"         ? "방에는 닿았는데 방 정보를 받지 못했어요. 방장 화면이 켜져 있는지 확인하고 다시 시도해 주세요."
+  : t==="kicked"          ? "방장이 내보냈어요."
   : "연결에 실패했어요. 다시 시도해 주세요.";
+  // 기기에서 원인을 알려면 실제 코드가 필요하다
+  refs.diag = t ? ("오류 코드: "+t+(e&&e.message?" · "+String(e.message).slice(0,120):"")) : "";
   viewKey=""; render();
 }
 
@@ -1091,6 +1260,7 @@ function currentView(){
     if(m.game==="cafe") return "cafe:"+m.roundKey;
     return "uni:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
   }
+  if(m.phase==="picking") return "picking";
   if(m.phase==="reveal") return "reveal:"+m.roundKey+":"+m.note;
   if(m.phase==="result") return "result:"+m.roundKey;
   return "lobby";
@@ -1107,7 +1277,7 @@ function render(){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
       nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps, cho:vCho, cafe:vCafe,
-      reveal:vReveal, result:vResult, spec:vSpec
+      picking:vPicking, reveal:vReveal, result:vResult, spec:vSpec
      }[v.split(":")[0]]||vLobby)();
   }
   patch(); renderRoster(); renderTop();
@@ -1204,9 +1374,12 @@ function vConn(){
 function vFatal(){
   stage.innerHTML='<div class="panel center" style="margin-top:40px"><div style="font-size:32px">🔌</div>'+
     '<h2 class="title" style="margin-top:8px">연결 실패</h2>'+
-    '<p class="lead" style="margin-top:8px">'+esc(refs.msg||"")+'</p></div>'+
-    '<button class="btn" id="retry">처음으로</button>';
-  stage.querySelector("#retry").onclick=()=>{ location.hash=""; location.reload(); };
+    '<p class="lead" style="margin-top:8px">'+esc(refs.msg||"")+'</p>'+
+    (refs.diag?'<p class="diag">'+esc(refs.diag)+'</p>':'')+'</div>'+
+    '<button class="btn" id="retry">다시 시도</button>'+
+    '<button class="btn ghost sm" id="home">처음으로</button>';
+  stage.querySelector("#retry").onclick=()=>location.reload();
+  stage.querySelector("#home").onclick=()=>{ location.hash=""; location.reload(); };
 }
 function vLost(){
   stage.innerHTML='<div class="panel center" style="margin-top:40px"><div style="font-size:32px">📴</div>'+
@@ -1249,15 +1422,20 @@ function vLobby(){
         [3,5,10].map(n=>'<button data-n="'+n+'" aria-pressed="'+(n===reactN)+'">'+n+'회</button>').join("")+
         '</div></div>';
     }).join("")+'</div>'+
+    '<div class="panel" style="display:flex;flex-direction:column;gap:10px">'+
+      '<span class="lab">참가자</span><div class="mlist" id="mlist"></div>'+
+      '<button class="btn ghost sm" id="specBtn"></button></div>'+
     '<div class="note" id="ln"></div>';
   stage.appendChild(box);
+  refs.lob={mlist:box.querySelector("#mlist"), spec:box.querySelector("#specBtn"), key:""};
+  refs.lob.spec.onclick=()=>{
+    const me=ST.players[ME.id];
+    netSend({t:"spec", on:!(me&&me.spec)});
+  };
   if(isHost){
     box.querySelectorAll(".gcard").forEach(b=>b.onclick=()=>{
-      let g=b.dataset.g;
-      if(g==="random"){                                   // 무작위로 하나 골라 그대로 시작
-        g=PLAY_GAMES[Math.floor(Math.random()*PLAY_GAMES.length)];
-        toast("🎲 "+GAMES[g].name+"!"); buzz([20,50,20]);
-      }
+      const g=b.dataset.g;
+      if(g==="random") return netSend({t:"randomPick", trials:reactN});
       netSend({t:"start", game:g, trials:reactN, cafes:cafeList});
     });
     const ro=box.querySelector("#ropt");
@@ -1278,6 +1456,31 @@ function vLobby(){
     };
   }
 }
+function paintLobbyList(){
+  const r=refs.lob, m=ST; if(!r||!m) return;
+  const isHost=(ME.id===m.hostId);
+  const ids=m.order.filter(id=>m.players[id].on);
+  const key=ids.map(id=>id+(m.players[id].spec?"s":"")).join(",")+"|"+isHost;
+  if(r.key!==key){
+    r.key=key;
+    r.mlist.innerHTML=ids.map(id=>{
+      const p=m.players[id];
+      return '<div class="mrow'+(p.spec?" spec":"")+'"><span>'+esc(p.emoji)+'</span>'+
+        '<span class="mn">'+esc(p.name)+(id===m.hostId?' <em>방장</em>':'')+
+        (id===ME.id?' <em>나</em>':'')+'</span>'+
+        '<span class="mt">'+(p.spec?"관전":"참가")+'</span>'+
+        (isHost&&id!==m.hostId?'<button class="kick" data-id="'+esc(id)+'">강퇴</button>':'')+'</div>';
+    }).join("");
+    if(isHost) r.mlist.querySelectorAll(".kick").forEach(b=>b.onclick=()=>{
+      const id=b.dataset.id;
+      if(confirm(nameOf(id)+"님을 내보낼까요?")) netSend({t:"kick", id});
+    });
+  }
+  const me=m.players[ME.id];
+  r.spec.textContent = me&&me.spec ? "👀 관전 중 · 다시 참가하기" : "👀 관전으로 빠지기";
+  r.spec.classList.toggle("on", !!(me&&me.spec));
+}
+
 function vSpec(){
   stage.innerHTML='<div class="panel center" style="margin-top:30px"><div style="font-size:34px">👀</div>'+
     '<h2 class="title" style="margin-top:8px">관전 중</h2>'+
@@ -1748,12 +1951,14 @@ function paintCho(){
     r.lab.textContent="곧 시작합니다";
     r.big.textContent=String(Math.max(1,Math.ceil(getRemain()/1000)));
     if(!r.locked){
+      // 입력창은 열어 둔다. 미리 탭해서 키보드를 띄워 놓을 수 있어야 출발이 공평하다.
       r.locked=true; r.shown=""; r.bigShown="";
-      r.inp.disabled=true; r.ok.disabled=true; r.ok.textContent="준비…"; r.cs.textContent="";
+      r.ok.disabled=true; r.ok.textContent="준비…";
+      r.cs.textContent="미리 탭해서 키보드를 띄워 두세요";
     }
     return;
   }
-  if(r.locked){ r.locked=false; r.shown=""; try{ r.inp.focus(); }catch(x){} }
+  if(r.locked){ r.locked=false; r.shown=""; r.cs.textContent=""; }
   const cho=m.cho||"";
   if(r.bigShown!==cho){
     r.bigShown=cho;
@@ -1786,6 +1991,41 @@ function paintCho(){
       '<span>'+esc(nameOf(x.id))+'</span><span class="num">'+esc(x.e.word)+'</span></span>').join("")
       || '<span class="note">아직 아무도 못 냈어요</span>';
   }
+}
+
+/* ---- 게임 랜덤 고르기 ---- */
+function vPicking(){
+  keepAwake(true);
+  stage.innerHTML=
+    '<div class="eyebrow">게임 랜덤 고르기</div>'+
+    '<h2 class="title" style="margin-top:-8px">무엇이 걸릴까</h2>'+
+    '<div class="pickbox"><span class="pkic" id="pki">🎲</span>'+
+    '<span class="pknm" id="pkn">…</span><span class="pkds" id="pkd"></span></div>'+
+    '<div class="panel center"><span class="lead" id="pkc"></span></div>';
+  refs.pick={ic:$("#pki"), nm:$("#pkn"), ds:$("#pkd"), c:$("#pkc"), last:0, shown:""};
+  paintPicking();
+}
+function paintPicking(){
+  const r=refs.pick, m=ST; if(!r||!m) return;
+  if(m.stage==="shuffle"){
+    if(Date.now()-r.last>90){                 // 이름이 빠르게 굴러가는 연출
+      r.last=Date.now();
+      const g=PLAY_GAMES[Math.floor(Math.random()*PLAY_GAMES.length)];
+      r.ic.textContent=GAMES[g].icon; r.nm.textContent=GAMES[g].name;
+    }
+    r.ds.textContent="";
+    r.c.textContent="뽑는 중… "+Math.max(1,Math.ceil(getRemain()/1000));
+    return;
+  }
+  const g=m.pickGame;
+  if(g&&r.shown!==g){
+    r.shown=g;
+    r.ic.textContent=GAMES[g].icon; r.nm.textContent=GAMES[g].name;
+    r.ds.textContent=GAMES[g].ds;
+    r.ic.parentNode.classList.add("hit");
+    buzz([30,60,30]);
+  }
+  r.c.textContent="곧 시작합니다";
 }
 
 /* ---- 공개 ---- */
@@ -1869,9 +2109,12 @@ function vResult(){
 function patch(){
   const m=ST; if(!m) return;
   if(refs.ln){
-    const n=m.order.filter(id=>m.players[id].on).length;
-    refs.ln.textContent=n<2?"혼자 있어요 · 지금 시작하면 연습 모드로 돌아갑니다":n+"명 접속 중 · 최대 "+MAXP+"명";
+    const on=m.order.filter(id=>m.players[id].on);
+    const play=on.filter(id=>!m.players[id].spec).length;
+    refs.ln.textContent = on.length<2 ? "혼자 있어요 · 지금 시작하면 연습 모드로 돌아갑니다"
+      : on.length+"명 접속 · "+play+"명 참가"+(on.length-play?" · "+(on.length-play)+"명 관전":"");
   }
+  if(refs.lob) paintLobbyList();
   if(refs.nv&&m.phase==="play"&&m.game==="nerve"){
     const counting=(m.stage==="count");
     if(!counting&&!nv.goLocal){                 // 출발 신호를 처음 본 순간이 내 기준시각
@@ -1955,6 +2198,7 @@ function patch(){
     }
     paintCho();
   }
+  if(refs.pick&&m.phase==="picking") paintPicking();
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
 }
 
@@ -1978,7 +2222,8 @@ function renderRoster(){
   [...rosterEl.children].forEach(c=>{
     const id=c.dataset.id, cs=c.querySelector(".cs");
     const p=m.players[id]||{};
-    c.className="chip"+(id===ME.id?" me":"")+(id===m.hostId?" host":"")+(p.on?"":" dead");
+    c.className="chip"+(id===ME.id?" me":"")+(id===m.hostId?" host":"")+(p.on?"":" dead")+
+      (p.spec&&m.phase==="lobby"?" spec":"");
     let t="";
     if(m.phase==="play"&&m.game==="nerve"){
       // 남의 진행 상태는 감춘다. 점수나 '버티는 중'이 보이면 일부러 늦게 눌러
