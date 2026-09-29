@@ -28,7 +28,7 @@ img{max-width:100%}
   background:radial-gradient(120% 60% at 50% -10%, rgba(245,165,36,.10), transparent 60%),var(--ground)}
 .topbar{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--line)}
 .brand{font-family:var(--display);font-size:19px;letter-spacing:.02em;line-height:1}
-.brand .cup{color:var(--amber)}
+.brand .bcup{color:var(--amber)}
 .topbar .spacer{flex:1}
 .livecount{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;
   font-variant-numeric:tabular-nums}
@@ -137,26 +137,27 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .passgrid button:not(:disabled):active{background:rgba(245,165,36,.18);border-color:var(--amber)}
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
-/* 야바위 — 컵은 위가 좁은 사다리꼴로 세우고, 공은 컵 아래 바닥에 둔다 */
-.cups{position:relative;height:30vw;max-height:132px;margin:10px 0 2px;
+/* 야바위 — 컵은 위가 좁은 사다리꼴로 세우고, 공은 컵 아래 바닥에 둔다.
+   선택자는 반드시 .cups 안으로 한정한다 (예전에 로고의 .cup 과 부딪혀 화면을 가린 적이 있다). */
+.cups{position:relative;height:21vw;max-height:92px;margin:10px 0 2px;
   border-bottom:2px solid var(--line)}
-.cup{position:absolute;left:0;bottom:2px;width:30%;height:88%;
+.cups .cup{position:absolute;left:8%;bottom:2px;width:21%;height:88%;
   clip-path:polygon(17% 0,83% 0,100% 100%,0 100%);
   background:linear-gradient(170deg,#E7643F,#B23A1C 62%,#8A2A12);
-  border:0;border-radius:3px 3px 5px 5px;
+  border:0;border-radius:3px 3px 5px 5px;padding:0;
   box-shadow:inset 0 3px 0 rgba(255,255,255,.22), inset 0 -10px 14px rgba(0,0,0,.35);
   transform-origin:50% 100%;will-change:transform;
   transition:bottom .18s ease;-webkit-user-select:none;user-select:none;
   -webkit-tap-highlight-color:transparent}
-.cup::after{content:"";position:absolute;left:24%;right:24%;top:9%;height:10%;border-radius:50%;
+.cups .cup::after{content:"";position:absolute;left:24%;right:24%;top:9%;height:10%;border-radius:50%;
   background:rgba(255,255,255,.16)}
-.cup.up{bottom:44%}
-.cup.pickable{cursor:pointer;box-shadow:inset 0 3px 0 rgba(255,255,255,.22),
+.cups .cup.up{bottom:46%}
+.cups .cup.pickable{cursor:pointer;box-shadow:inset 0 3px 0 rgba(255,255,255,.22),
   inset 0 -10px 14px rgba(0,0,0,.35), 0 0 0 2px var(--amber)}
-.cup.pickable:active{filter:brightness(1.25)}
-.ball{position:absolute;left:0;bottom:4px;width:30%;text-align:center;font-size:min(7vw,26px);
+.cups .cup.pickable:active{filter:brightness(1.25)}
+.cups .ball{position:absolute;left:8%;bottom:4px;width:21%;text-align:center;font-size:min(5vw,20px);
   line-height:1;z-index:0;color:#F3E8D6;text-shadow:0 2px 4px rgba(0,0,0,.6)}
-.slotlab{display:flex;justify-content:space-between;padding:0 8%;margin-top:5px;
+.slotlab{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;margin-top:5px;
   font-family:var(--mono);font-size:11px;color:var(--muted)}
 
 /* 과녁 맞추기 */
@@ -172,11 +173,14 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
     var(--surface);
   border:1px solid var(--line);-webkit-user-select:none;user-select:none;
   -webkit-tap-highlight-color:transparent;cursor:crosshair;touch-action:manipulation}
-.tgt{position:absolute;left:50%;top:50%;font-size:min(13vw,52px);line-height:1;
+/* 글리프보다 넉넉한 정사각형 탭 영역을 줘서 조금 빗나가도 맞도록 한다 */
+.tgt{position:absolute;left:50%;top:50%;width:27%;aspect-ratio:1;min-width:66px;
+  display:grid;place-items:center;font-size:min(12vw,46px);line-height:1;border-radius:50%;
   transform:translate(-50%,-50%) scale(.3);opacity:0;pointer-events:none;
   transition:opacity .08s linear, transform .13s cubic-bezier(.2,1.5,.4,1);
   filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
 .tgt[data-on="1"]{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto;cursor:pointer}
+.tgt[data-on="1"]:active{transform:translate(-50%,-50%) scale(1.12)}
 .aflash{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:17px;
   font-weight:600;opacity:0;pointer-events:none;z-index:5}
 .aflash.good{color:var(--mint)}
@@ -352,7 +356,7 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><span class="cup">☕</span> 커피 결투장</div>
+    <div class="brand"><span class="bcup">☕</span> 커피 결투장</div>
     <div class="spacer"></div>
     <button class="abortbtn hidden" id="abort">■ 중단</button>
     <button class="me-chip hidden" id="meChip"></button>
@@ -431,10 +435,10 @@ function makeAimSeq(){
     const r=t/AIM_MS;
     const life=Math.max(650,Math.round(1150-450*r));
     let x=50,y=50,tries=0;
-    do{
-      x=10+Math.random()*80; y=10+Math.random()*80; tries++;
-    }while(tries<30 && seq.some(s=>t<s.t+s.life+150 &&
-           Math.sqrt((s.x-x)*(s.x-x)+(s.y-y)*(s.y-y))<25));
+    do{                                   // 탭 영역이 넓어진 만큼 간격도 넓게, 판 안쪽으로만
+      x=14+Math.random()*72; y=14+Math.random()*72; tries++;
+    }while(tries<40 && seq.some(s=>t<s.t+s.life+150 &&
+           Math.sqrt((s.x-x)*(s.x-x)+(s.y-y)*(s.y-y))<32));
     seq.push({x:Math.round(x*10)/10, y:Math.round(y*10)/10, t, life});
     t+=Math.max(360,Math.round(720-320*r));
   }
@@ -2197,6 +2201,8 @@ function paintCho(){
    앞으로 지나가는 쪽은 살짝 커지면서 위로 떠서, 평면 슬라이드보다 훨씬 따라가기 쉽다. */
 const shell={key:"",applied:0,goLocal:0,stage:"",raf:0,mv:null,
              cupSlot:[0,1,2], cupAtSlot:[0,1,2]};
+// 컵 폭(21%) 기준 한 자리 간격. 자리 0·1·2 가 화면의 8% / 39.5% / 71% 에 놓인다.
+const CUP_PITCH=150;
 function drawCups(){
   const r=refs.shell; if(!r) return;
   const now=performance.now(), mv=shell.mv;
@@ -2209,7 +2215,7 @@ function drawCups(){
     }
     const ease=0.5-0.5*Math.cos(Math.PI*p);
     const arc=Math.sin(Math.PI*p);
-    const x=(from+(to-from)*ease)*116.666;
+    const x=(from+(to-from)*ease)*CUP_PITCH;
     const e=r.cups[c];
     e.style.zIndex = dir>0?"3" : dir<0?"1" : "2";
     e.style.transform=
@@ -2271,7 +2277,7 @@ function paintShell(){
   }
   if(st==="peek"){
     r.ball.classList.remove("hidden");
-    r.ball.style.transform="translateX("+(m.shell.pos0*116.666).toFixed(3)+"%)";
+    r.ball.style.transform="translateX("+(m.shell.pos0*CUP_PITCH).toFixed(3)+"%)";
     r.cups.forEach(e=>e.classList.add("up"));
     r.ss.className="cstat chk"; r.ss.textContent="공은 "+(m.shell.pos0+1)+"번 컵에 있습니다";
     r.sn.textContent="잘 보세요…";
@@ -2347,9 +2353,11 @@ function vAim(){
   aim.free=[]; for(let p=AIM_POOL-1;p>=0;p--) aim.free.push(p);
   aim.map={};
   const live=()=>!(aim.done||ST.stage!=="run"||!aim.goLocal);
+  // click 은 탭이 끝날 때까지 기다리고 손가락이 살짝 움직이면 취소돼 '씹히는' 느낌이 난다.
+  // pointerdown 으로 누르는 즉시 판정한다.
   refs.aim.pool.forEach(el=>{
-    el.onclick=ev=>{
-      ev.stopPropagation();
+    el.addEventListener("pointerdown",ev=>{
+      ev.preventDefault(); ev.stopPropagation();
       if(!live()) return;
       const idx=parseInt(el.dataset.idx||"-1",10);
       if(idx<0||aim.hit[idx]) return;
@@ -2359,17 +2367,18 @@ function vAim(){
       aim.score+=p; aim.hits++; buzz(12);
       aimFlash(s.x,s.y,"+"+p,true);
       paintAimHud(); paintAim();
-    };
+    });
   });
-  refs.aim.area.onclick=ev=>{                // 빈 곳을 눌렀을 때
+  refs.aim.area.addEventListener("pointerdown",ev=>{   // 빈 곳을 눌렀을 때
     if(!live()) return;
+    ev.preventDefault();
     const b=refs.aim.area.getBoundingClientRect();
     const x=clamp((ev.clientX-b.left)/b.width*100,3,97);
     const y=clamp((ev.clientY-b.top)/b.height*100,3,97);
     aim.score-=15; buzz(22);
     aimFlash(x,y,"-15",false);
     paintAimHud();
-  };
+  });
   paintAimHud(); paintAim();
 }
 function paintAimHud(){
