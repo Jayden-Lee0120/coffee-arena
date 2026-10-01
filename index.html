@@ -21,6 +21,7 @@
 html,body{margin:0;padding:0}
 body{background:var(--ground);color:var(--cream);font-family:var(--body);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
+body.noscroll{overflow:hidden;touch-action:none}   /* 과녁 진행 중 화면 흔들림 방지 */
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation}
 :focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
 img{max-width:100%}
@@ -172,7 +173,9 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
     repeating-linear-gradient(90deg,transparent 0 23px,rgba(70,58,43,.35) 23px 24px),
     var(--surface);
   border:1px solid var(--line);-webkit-user-select:none;user-select:none;
-  -webkit-tap-highlight-color:transparent;cursor:crosshair;touch-action:manipulation}
+  -webkit-tap-highlight-color:transparent;cursor:crosshair;
+  /* 판 안에서 끌어도 화면이 스크롤되지 않게 한다 */
+  touch-action:none;overscroll-behavior:contain}
 /* 글리프보다 넉넉한 정사각형 탭 영역을 줘서 조금 빗나가도 맞도록 한다 */
 .tgt{position:absolute;left:50%;top:50%;width:27%;aspect-ratio:1;min-width:66px;
   display:grid;place-items:center;font-size:min(12vw,46px);line-height:1;border-radius:50%;
@@ -407,25 +410,35 @@ const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho","shell","ai
 const MENU=["cafe","random"].concat(PLAY_GAMES);
 const MAX_CAFE=20;
 const PICK_SHUFFLE=3000, PICK_REVEAL=1600;   // 랜덤 고르기: 섞는 시간 / 공개 후 시작까지
-const SHELL_PEEK=1800, SHELL_MS=15000, SHELL_PICK=8000;   // 야바위: 확인 / 섞기 / 고르기
+const SHELL_PEEK=1300, SHELL_MS=15000, SHELL_PICK=8000;   // 야바위: 확인 / 섞기 / 고르기
 const AIM_COUNT=3000, AIM_MS=15000, AIM_POOL=6;           // 과녁: 카운트다운 / 진행 시간 / 동시 표시 한도
 
 /* 야바위 섞기 순서. 뒤로 갈수록 한 번 바꾸는 시간이 짧아져 점점 빨라진다.
    방장이 만들어 전원에게 그대로 뿌리므로 모두 똑같은 화면을 본다. */
+/* 한 수는 자리 치환으로 나타낸다. p[자리] = 그 자리의 컵이 옮겨 갈 자리.
+   두 컵만 바꾸는 수와 세 컵이 한꺼번에 도는 수를 섞고, 뒤로 갈수록 회전이 잦아진다. */
 function makeShuffleSeq(){
   const seq=[]; let t=0,i=0;
   while(t<SHELL_MS){
-    const d=Math.max(300,780-i*20);       // 최소 0.3초 — 끝까지 눈으로 따라갈 수 있게
-    const a=Math.floor(Math.random()*3);
-    let b=Math.floor(Math.random()*3); while(b===a) b=Math.floor(Math.random()*3);
-    seq.push({a,b,d}); t+=d; i++;
+    const d=Math.max(200,760-i*24);       // 최소 0.2초
+    const rot=Math.random() < 0.20+0.35*(t/SHELL_MS);
+    let p;
+    if(rot){
+      p = Math.random()<0.5 ? [1,2,0] : [2,0,1];
+    }else{
+      const a=Math.floor(Math.random()*3);
+      let b=Math.floor(Math.random()*3); while(b===a) b=Math.floor(Math.random()*3);
+      p=[0,1,2]; p[a]=b; p[b]=a;
+    }
+    seq.push({p,d,f:Math.random()<0.5});  // f: 앞뒤로 지나가는 방향을 매번 뒤집는다
+    t+=d; i++;
   }
   return seq;
 }
 function shellAnswer(pos0,seq){
-  let p=pos0;
-  for(const s of seq){ if(p===s.a) p=s.b; else if(p===s.b) p=s.a; }
-  return p;
+  let s=pos0;
+  for(const m of seq) s=m.p[s];
+  return s;
 }
 /* 과녁이 뜨는 순서. 자리는 완전히 무작위이고, 시간이 갈수록 간격이 좁아지고 머무는 시간도 짧아진다.
    같은 시간대에 겹쳐 뜨는 과녁끼리는 일정 거리를 띄워 서로 가리지 않게 한다. */
@@ -1475,6 +1488,7 @@ function render(){
     toast("방장이 게임을 중단했어요");
   prevPhase=p;
   const v=currentView();
+  if(v.split(":")[0]!=="aim") document.body.classList.remove("noscroll");
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
@@ -2207,14 +2221,14 @@ function drawCups(){
   const r=refs.shell; if(!r) return;
   const now=performance.now(), mv=shell.mv;
   for(let c=0;c<3;c++){
-    let from=shell.cupSlot[c], to=from, p=0, dir=0;
-    if(mv && (mv.c1===c||mv.c2===c)){
-      const m=(mv.c1===c)?mv.m1:mv.m2;
-      from=m.from; to=m.to; dir=m.dir;
+    let from=shell.cupSlot[c], to=from, p=0, dir=0, amp=1;
+    const m=mv&&mv.m[c];
+    if(m){
+      from=m.from; to=m.to; dir=m.dir; amp=m.amp;
       p=clamp((now-mv.t0)/mv.dur,0,1);
     }
     const ease=0.5-0.5*Math.cos(Math.PI*p);
-    const arc=Math.sin(Math.PI*p);
+    const arc=Math.sin(Math.PI*p)*amp;
     const x=(from+(to-from)*ease)*CUP_PITCH;
     const e=r.cups[c];
     e.style.zIndex = dir>0?"3" : dir<0?"1" : "2";
@@ -2243,8 +2257,9 @@ function vShell(){
     '<div class="slotlab"><span>1번</span><span>2번</span><span>3번</span></div>'+
     '<div class="cstat" id="ss"></div>'+
     '<div class="panel"><ul class="rulelist">'+
-    '<li>처음 <b>1.8초</b> 동안 공이 어느 컵에 있는지 보여줍니다.</li>'+
-    '<li><span class="hot">15초</span> 동안 컵이 섞이고, 뒤로 갈수록 점점 빨라집니다.</li>'+
+    '<li>처음 <b>1.3초</b> 동안만 공이 어느 컵에 있는지 보여줍니다.</li>'+
+    '<li><span class="hot">15초</span> 동안 섞입니다. 뒤로 갈수록 빨라지고, '+
+      '<span class="hot">세 컵이 한꺼번에 도는 수</span>도 잦아집니다.</li>'+
     '<li>섞임이 끝나면 컵을 눌러 고르세요. 모두 <span class="cool">같은 화면</span>을 봅니다.</li>'+
     '<li>맞히면 탈출, 틀리거나 못 고르면 다음 라운드로. 마지막 한 명이 삽니다.</li></ul></div>'+
     '<div class="note" id="sn"></div>';
@@ -2291,13 +2306,18 @@ function paintShell(){
     while(k<seq.length && t<=el){ t+=seq[k].d; k++; }
     while(shell.applied<k && shell.applied<seq.length){
       const s=seq[shell.applied];
-      const c1=shell.cupAtSlot[s.a], c2=shell.cupAtSlot[s.b];
-      shell.cupAtSlot[s.a]=c2; shell.cupAtSlot[s.b]=c1;
-      shell.cupSlot[c1]=s.b;  shell.cupSlot[c2]=s.a;
-      const frontIsC1=Math.random()<0.5;      // 어느 컵이 앞으로 지나갈지
-      shell.mv={c1,c2,t0:performance.now(),dur:s.d,
-        m1:{from:s.a,to:s.b,dir:frontIsC1?1:-1},
-        m2:{from:s.b,to:s.a,dir:frontIsC1?-1:1}};
+      const prev=shell.cupAtSlot.slice();     // prev[자리] = 그 자리에 있던 컵
+      const mvm={};
+      for(let slot=0;slot<3;slot++){
+        const cup=prev[slot], to=s.p[slot];
+        shell.cupAtSlot[to]=cup; shell.cupSlot[cup]=to;
+        if(to!==slot){
+          mvm[cup]={from:slot, to,
+            dir:(to>slot?1:-1)*(s.f?-1:1),
+            amp:Math.abs(to-slot)>1?1.4:1};   // 멀리 가는 컵은 더 크게 호를 그린다
+        }
+      }
+      shell.mv={t0:performance.now(), dur:s.d, m:mvm};
       shell.applied++;
     }
     r.ss.className="cstat"; r.ss.textContent="섞는 중…";
@@ -2338,14 +2358,17 @@ function vAim(){
     '<div class="aimarea" id="aa">'+
       Array.from({length:AIM_POOL},(_,p)=>'<div class="tgt" data-p="'+p+'" data-on="0" data-idx="-1">🎯</div>').join("")+
       '<div class="aflash" id="af"></div></div>'+
-    '<div class="panel"><ul class="rulelist">'+
+    '<div class="panel" id="arules"><ul class="rulelist">'+
     '<li>과녁이 <b>완전히 무작위인 자리</b>에 떴다가 잠시 뒤 사라집니다.</li>'+
     '<li><span class="cool">빨리 누를수록 높은 점수</span> — 막 떴을 때 100점, 사라질 때쯤 10점.</li>'+
     '<li>빈 곳을 누르면 <span class="hot">-15점</span>이니 마구 두드리면 손해입니다.</li>'+
     '<li>모두 같은 순서로 진행하고, 점수가 가장 낮은 사람이 삽니다.</li></ul></div>'+
     '<div class="note" id="an"></div>';
   refs.aim={area:$("#aa"), pool:[...stage.querySelectorAll(".tgt")], flash:$("#af"),
-            sc:$("#ascore"), hi:$("#ahits"), bar:$("#bar"), an:$("#an")};
+            sc:$("#ascore"), hi:$("#ahits"), bar:$("#bar"), an:$("#an"),
+            rules:$("#arules"), locked:false};
+  // touch-action 만으로 안 잡히는 기기가 있어 끌기 자체를 막아 둔다
+  refs.aim.area.addEventListener("touchmove",ev=>ev.preventDefault(),{passive:false});
   if(aim.key!==m.roundKey){
     aim.key=m.roundKey; aim.goLocal=0; aim.score=0; aim.hits=0; aim.done=false;
     aim.hit={}; aim.map={};
@@ -2396,6 +2419,12 @@ function paintAim(){
     r.an.textContent="곧 시작합니다 · "+Math.max(1,Math.ceil(getRemain()/1000));
     return;
   }
+  if(!r.locked){                 // 진행이 시작되면 규칙을 접고 화면을 맨 위로 고정한다
+    r.locked=true;
+    if(r.rules) r.rules.classList.add("hidden");
+    try{ window.scrollTo(0,0); }catch(e){}
+    document.body.classList.add("noscroll");
+  }
   if(!aim.goLocal) aim.goLocal=Date.now();
   const el=Date.now()-aim.goLocal, seq=m.aim.seq;
   const act={};
@@ -2419,6 +2448,7 @@ function paintAim(){
   if(el>=AIM_MS && !aim.done){
     aim.done=true;
     for(const k in aim.map){ aimRelease(aim.map[k]); delete aim.map[k]; }
+    document.body.classList.remove("noscroll");      // 끝나면 다시 스크롤 가능
     r.an.textContent="끝! "+aim.score+"점 · 다른 사람을 기다리는 중";
     netSend({t:"aim", score:aim.score, hits:aim.hits});
   }
