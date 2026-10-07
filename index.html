@@ -138,6 +138,58 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .passgrid button:not(:disabled):active{background:rgba(245,165,36,.18);border-color:var(--amber)}
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
+/* 격투 — 화면 전체를 덮고, 세로 모드에서는 무대를 90도 돌려 가로로 쓴다 */
+.fstage{position:fixed;inset:0;z-index:60;background:#0C0A07;display:grid;place-items:center;overflow:hidden}
+.farena{position:relative;aspect-ratio:16/9;width:min(100vw,177.7vh);
+  background:linear-gradient(180deg,#1B1711 0%,#241D14 62%,#2E251A 62%,#1A150F 100%);
+  overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+@media (orientation:portrait){ .farena{width:min(100vh,177.7vw);transform:rotate(90deg)} }
+.fhud{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr auto 1fr;
+  gap:10px;padding:8px 12px;align-items:start}
+.fside{display:flex;flex-direction:column;gap:4px}
+.fside.right{align-items:flex-end}
+.fnm{font-size:11px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fhp{height:9px;border-radius:5px;background:#3A2E20;border:1px solid var(--line);overflow:hidden}
+.fhp i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4ED9A4,#F5A524);
+  transition:width .12s linear}
+.fhp.rev{direction:rtl}
+.fhp.rev i{background:linear-gradient(270deg,#FF5C3E,#F5A524)}
+.fmid{display:flex;flex-direction:column;align-items:center;line-height:1}
+.ftm{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.frd{font-size:10px;color:var(--muted);letter-spacing:.1em}
+.fquit{position:absolute;right:8px;top:42px;z-index:4;font-size:13px;padding:3px 8px;border-radius:8px;
+  color:var(--ember);background:rgba(255,92,62,.16);border:1px solid rgba(255,92,62,.5)}
+.fground{position:absolute;left:0;right:0;bottom:16%;height:52%}
+.figw{position:absolute;bottom:0;width:13%;height:100%;transition:left .1s linear}
+.fig{width:100%;height:100%;overflow:visible}
+.fig .hd{fill:none;stroke-width:3.4}
+.fig line{stroke-width:3.4;stroke-linecap:round}
+.figw.me .hd,.figw.me line{stroke:#9BE8CB}
+.figw.foe .hd,.figw.foe line{stroke:#FF9B80}
+.figw[data-p=hit]{filter:brightness(1.7)}
+.fbig{position:absolute;left:0;right:0;top:38%;text-align:center;font-family:var(--display);
+  font-size:min(7vw,44px);letter-spacing:.06em;opacity:0;transition:opacity .25s;pointer-events:none}
+.fbig.on{opacity:1}
+.fbig.flash{animation:fbf 1s ease-out forwards}
+.fbig.win{color:var(--mint)}
+.fbig.lose{color:var(--ember)}
+@keyframes fbf{0%{opacity:1;transform:scale(1.25)}70%{opacity:1}100%{opacity:0}}
+.fctl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;
+  justify-content:space-between;padding:10px 14px;gap:10px}
+.fjoy{position:relative;width:min(22vw,116px);aspect-ratio:2/1;border-radius:999px;
+  background:rgba(47,39,29,.85);border:1px solid var(--line);display:grid;place-items:center;
+  touch-action:none;flex:0 0 auto}
+.fjoy .fja,.fjoy .fjb{position:absolute;font-size:13px;color:var(--muted)}
+.fjoy .fja{left:8px} .fjoy .fjb{right:8px}
+.fknob{position:absolute;left:50%;top:50%;width:34%;aspect-ratio:1;border-radius:50%;
+  background:var(--cream);transform:translate(-50%,-50%);transition:transform .07s ease-out}
+.fpad{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;flex:0 0 auto}
+.fb{padding:9px 12px;border-radius:12px;font-size:12px;font-weight:700;min-width:62px;
+  background:rgba(47,39,29,.9);border:1px solid var(--line);touch-action:none}
+.fb.p{color:#FFD9A8;border-color:rgba(245,165,36,.5)}
+.fb.k{color:#FFB3A0;border-color:rgba(255,92,62,.5)}
+.fb:active{filter:brightness(1.5)}
+
 /* 야바위 — 컵은 위가 좁은 사다리꼴로 세우고, 공은 컵 아래 바닥에 둔다.
    선택자는 반드시 .cups 안으로 한정한다 (예전에 로고의 .cup 과 부딪혀 화면을 가린 적이 있다). */
 .cups{position:relative;height:21vw;max-height:92px;margin:10px 0 2px;
@@ -206,6 +258,14 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .btn.ghost.on{border-color:var(--amber);color:var(--amber)}
 .chip.spec{opacity:.5}
 .diag{margin:10px 0 0;font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+
+/* 관전 — 같은 화면을 보되 조작 요소만 잠근다 */
+.specbar{padding:8px 12px;border-radius:999px;text-align:center;font-size:12.5px;font-weight:700;
+  color:var(--amber);background:rgba(245,165,36,.12);border:1px solid rgba(245,165,36,.45)}
+.specview .hold,.specview .numpad,.specview .rpsrow,.specview .passgrid,.specview .aimarea,
+.specview .pad,.specview .cups .cup,.specview .fpad,
+.specview #cw,.specview #cok,.specview #ok,.specview #uniSubmit{
+  pointer-events:none !important;opacity:.62}
 
 /* 게임 랜덤 고르기 */
 .pickbox{display:flex;flex-direction:column;align-items:center;gap:8px;padding:30px 18px;border-radius:16px;
@@ -402,16 +462,82 @@ const GAMES={
   rps:{icon:"✊",name:"가위바위보",ds:"컴퓨터와 한판. 이긴 사람은 그 자리에서 탈출하고, 지거나 비기면 다음 라운드로."},
   cho:{icon:"🔠",name:"초성 퀴즈",ds:"뜬 자음 두 개로 시작하는 진짜 단어를 가장 빨리 적으세요. 제출 순서가 곧 순위입니다."},
   shell:{icon:"🧢",name:"야바위",ds:"공이 든 컵을 끝까지 눈으로 따라가세요. 맞힌 사람은 탈출, 틀리면 다음 라운드로."},
+  fight:{icon:"🥊",name:"격투",ds:"1대1 스틱맨 대결. 짝이 없으면 컴퓨터와 붙습니다. 이긴 사람은 탈출, 진 사람은 다음 라운드로."},
   aim:{icon:"🎯",name:"과녁 맞추기",ds:"15초 동안 뜨는 과녁을 빠르게 누르세요. 점수가 가장 낮은 사람이 삽니다."},
   cafe:{icon:"☕",name:"카페 랜덤 고르기",ds:"방장이 후보 카페를 적으면 룰렛으로 오늘 갈 곳을 정합니다. 커피값과는 별개예요."},
   random:{icon:"🎲",name:"게임 랜덤 고르기",ds:"아래 게임 중 하나를 무작위로 골라 그대로 시작합니다."}
 };
-const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho","shell","aim"];   // 무작위 대상
+const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho","shell","aim","fight"];
 const MENU=["cafe","random"].concat(PLAY_GAMES);
 const MAX_CAFE=20;
 const PICK_SHUFFLE=3000, PICK_REVEAL=1600;   // 랜덤 고르기: 섞는 시간 / 공개 후 시작까지
 const SHELL_PEEK=1300, SHELL_MS=15000, SHELL_PICK=8000;   // 야바위: 확인 / 섞기 / 고르기
 const AIM_COUNT=3000, AIM_MS=15000, AIM_POOL=6;           // 과녁: 카운트다운 / 진행 시간 / 동시 표시 한도
+
+/* 격투 — 1대1 동시 대전. 짝이 없으면 컴퓨터가 상대한다.
+   판정은 전부 방장이 하고(30Hz), 화면에는 12Hz 로 보낸 뒤 각 기기가 보간해 그린다. */
+const FIGHT_READY=3000, FIGHT_MS=40000, FIGHT_HP=100;
+const F_MINX=9, F_MAXX=91, F_GAP=9, F_SPEED=34, F_BSPEED=17, F_STUN=230;
+const F_ATK={
+  lp:{nm:"왼손", st:80,  dur:270, reach:15, dmg:5 },
+  rp:{nm:"오른손",st:135, dur:370, reach:17, dmg:8 },
+  lk:{nm:"왼발", st:185, dur:470, reach:21, dmg:11},
+  rk:{nm:"오른발",st:245, dur:630, reach:24, dmg:16}
+};
+function newFighter(x,cpu){
+  return {x, hp:FIGHT_HP, mv:0, atk:null, hitDone:false, stun:0, cd:0, cpu:!!cpu, think:0, pose:"idle"};
+}
+function fStart(f,k,now){
+  const a=F_ATK[k]; if(!a) return;
+  if(f.stun>now||f.cd>now||f.atk) return;
+  f.atk={k,t0:now}; f.hitDone=false; f.cd=now+a.dur;
+}
+function fStep(me,foe,now,dt){
+  const face = foe.x>me.x ? 1 : -1;
+  me.face=face;
+  if(me.cpu) cpuThink(me,foe,now,face);
+  const stunned=me.stun>now;
+  // 상대 반대쪽으로 움직이면 막기 자세가 된다 (스트리트파이터 방식)
+  const blocking = !stunned && !me.atk && me.mv!==0 && Math.sign(me.mv)!==face;
+  me.block=blocking;
+  if(!stunned && !me.atk && me.mv!==0){
+    const sp=(blocking?F_BSPEED:F_SPEED)*dt/1000;
+    let nx=clamp(me.x+me.mv*sp,F_MINX,F_MAXX);
+    if(Math.abs(nx-foe.x)<F_GAP) nx=me.x;        // 서로 통과하지 않게
+    me.x=nx;
+  }
+  if(me.atk){
+    const a=F_ATK[me.atk.k], el=now-me.atk.t0;
+    if(!me.hitDone && el>=a.st){
+      me.hitDone=true;
+      if(Math.abs(foe.x-me.x)<=a.reach+F_GAP){
+        const dmg = foe.block ? Math.max(1,Math.round(a.dmg*0.25)) : a.dmg;
+        foe.hp=Math.max(0,foe.hp-dmg);
+        if(!foe.block){ foe.stun=now+F_STUN; foe.atk=null; foe.pose="hit"; }
+        foe.x=clamp(foe.x+face*(foe.block?3:6),F_MINX,F_MAXX);
+      }
+    }
+    if(el>=a.dur) me.atk=null;
+  }
+  me.pose = me.stun>now ? "hit"
+          : me.atk ? me.atk.k
+          : blocking ? "blk"
+          : me.mv!==0 ? "walk" : "idle";
+}
+function cpuThink(me,foe,now,face){
+  if(now<me.think) return;
+  me.think=now+170+Math.random()*300;
+  const d=Math.abs(foe.x-me.x);
+  if(d>26){ me.mv=face; return; }
+  if(Math.random()<0.18){ me.mv=-face; return; }        // 가끔 물러나며 막기
+  if(d<13){ me.mv=Math.random()<0.5?-face:0; }
+  else me.mv=0;
+  if(!me.atk&&me.cd<=now){
+    const keys=["lp","lp","rp","lk","rk"];
+    const k=keys[Math.floor(Math.random()*keys.length)];
+    if(d<=F_ATK[k].reach+F_GAP+2) fStart(me,k,now);
+  }
+}
 
 /* 야바위 섞기 순서. 뒤로 갈수록 한 번 바꾸는 시간이 짧아져 점점 빨라진다.
    방장이 만들어 전원에게 그대로 뿌리므로 모두 똑같은 화면을 본다. */
@@ -790,6 +916,7 @@ function initHostState(){
     phase:"lobby", game:null, roundKey:null, stage:null, boom:false, spin:null,
     roster:[], alive:[], uniRound:1, maxNum:20, rpsRound:1, cpu:null, trials:REACT_TRIALS, cho:null,
     cafes:[], cafePick:null, shell:null, shellRound:1, shellAns:null, aim:null,
+    fights:null, fightRound:1,
     holder:null, from:null, passes:0,
     entries:{}, board:null, note:"", loser:null, lastLoser:null,
     rematch:0, remain:0
@@ -798,7 +925,7 @@ function initHostState(){
   ST.order.push(ME.id);
   HOST={picks:{}, rps:{}, cpu:0, bombStart:0, bombTick:0, phaseStart:0, handAt:0, lastB:0,
         fuse:0, goAt:0, boomAt:0, spinAt:0, roulLoser:null, taken:{}, seq:0,
-        kicked:{}, pickGame:null, shellPick:{}, shellAns:0, next:null};
+        kicked:{}, pickGame:null, shellPick:{}, shellAns:0, fm:[], fTick:0, next:null};
 }
 
 /* 게스트에게 보내는 상태. ST.entries 에는 애초에 숫자를 담지 않으므로(HOST.picks 에만 보관)
@@ -819,24 +946,28 @@ const onlineIds=()=> (ST?ST.order.filter(id=>ST.players[id]&&ST.players[id].on):
 // 관전으로 빠진 사람은 새 판의 참가자 명단에서 제외된다
 const playingIds=()=> onlineIds().filter(id=>!ST.players[id].spec);
 
-/* 실제로 있는 낱말인지 확인.
-   위키백과는 인물·지명·상표 같은 표제어까지 잡혀서 "사전에 있는 단어"와 거리가 멀어 빼고,
-   낱말만 싣는 위키낱말사전만 본다. 기본 목록에 있으면 조회 없이 즉시 통과.
-   "없다"는 답을 받았을 때만 탈락시키고, 조회 자체가 실패하면 인정한다(판이 막히면 안 되므로). */
+/* 실제로 있는 낱말인지 확인. 내장 목록 → 위키낱말사전 → 위키백과 순으로 본다.
+   "없다"는 답을 끝까지 받았을 때만 탈락시키고, 조회 자체가 실패하면 인정한다(판이 막히면 안 되므로). */
 function lookupWord(w){
   if(CHO_WORDS.has(w)) return Promise.resolve(true);
-  const ctl=new AbortController();
-  const timer=setTimeout(()=>ctl.abort(),3500);
-  return fetch("https://ko.wiktionary.org/w/api.php?action=query&format=json&origin=*&titles="+
-               encodeURIComponent(w), {signal:ctl.signal})
-    .then(r=>r.ok?r.json():Promise.reject(new Error("http")))
-    .then(j=>{
-      const pages=j&&j.query&&j.query.pages;
-      for(const k in pages) if(!("missing" in pages[k])) return true;
-      return false;
-    })
-    .catch(()=>true)
-    .then(v=>{ clearTimeout(timer); return v; });
+  const hosts=["ko.wiktionary.org","ko.wikipedia.org"];
+  let errored=false;
+  const ask=i=>{
+    if(i>=hosts.length) return Promise.resolve(errored);
+    const ctl=new AbortController();
+    const timer=setTimeout(()=>ctl.abort(),3500);
+    return fetch("https://"+hosts[i]+"/w/api.php?action=query&format=json&origin=*&titles="+
+                 encodeURIComponent(w), {signal:ctl.signal})
+      .then(r=>r.ok?r.json():Promise.reject(new Error("http")))
+      .then(j=>{
+        clearTimeout(timer);
+        const pages=j&&j.query&&j.query.pages;
+        for(const k in pages) if(!("missing" in pages[k])) return true;
+        return ask(i+1);
+      })
+      .catch(()=>{ clearTimeout(timer); errored=true; return ask(i+1); });
+  };
+  return ask(0);
 }
 
 function handleAction(from,d){
@@ -959,6 +1090,15 @@ function handleAction(from,d){
       ST.spin={deg:Math.round((360*6+(360-center-jitter))*100)/100, dur:ROUL_SPIN};
       return netBroadcast();
     }
+    case "fi": {                                   // 격투 입력
+      if(ST.phase!=="play"||ST.game!=="fight"||ST.stage!=="go") return;
+      const p=fightOf(from); if(!p) return;
+      const m=HOST.fm[p.i]; if(!m||m.over) return;
+      const me=m[p.me];
+      if(d.mv!==undefined) me.mv=clamp(Math.round(d.mv),-1,1);
+      if(d.atk) fStart(me,String(d.atk),Date.now());
+      return;                                      // 다음 틱에 같이 방송된다
+    }
     case "shell": {
       if(ST.phase!=="play"||ST.game!=="shell"||ST.stage!=="pick") return;
       if(ST.alive.indexOf(from)<0) return;
@@ -1015,7 +1155,8 @@ function startGame(g,trials,cafes){
   HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
   ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT : g==="react"?REACT_LIMIT
             : g==="rps"?RPS_LIMIT : g==="cho"?NV_COUNT
-            : g==="shell"?SHELL_PEEK : g==="aim"?AIM_COUNT : 0;
+            : g==="shell"?SHELL_PEEK : g==="aim"?AIM_COUNT
+            : g==="fight"?FIGHT_READY : 0;
   ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.aborted=false;
   if(g==="nerve"){
     // 이번 라운드의 폭탄 시간은 단 하나. 전원에게 똑같이 적용되며 방장 기기 밖으로 나가지 않는다.
@@ -1043,6 +1184,11 @@ function startGame(g,trials,cafes){
   if(g==="aim"){
     ST.stage="count"; ST.aim={seq:makeAimSeq()};
   }
+  if(g==="fight"){
+    ST.alive=roster.slice(); ST.fightRound=1;
+    makePairs(roster.slice());
+    ST.stage="ready"; HOST.fTick=Date.now();
+  }
   if(g==="cafe"){
     ST.stage="setup"; ST.cafePick=null; HOST.cafeIdx=-1; HOST.spinAt=0;
     ST.cafes=Array.isArray(cafes)
@@ -1061,7 +1207,7 @@ function toLobby(){
   ST.phase="lobby"; ST.game=null; ST.roundKey=null; ST.entries={}; ST.board=null;
   ST.lastLoser=ST.loser||ST.lastLoser; ST.loser=null; ST.note="";
   ST.stage=null; ST.boom=false; ST.spin=null; ST.cpu=null; ST.cho=null; ST.pickGame=null;
-  ST.shell=null; ST.shellAns=null; ST.aim=null;
+  ST.shell=null; ST.shellAns=null; ST.aim=null; ST.fights=null;
   HOST.picks={}; HOST.rps={}; HOST.taken={}; HOST.seq=0; HOST.next=null; HOST.pickGame=null;
   HOST.shellPick={};
   netBroadcast();
@@ -1153,6 +1299,26 @@ function hostTick(){
     return beat();
   }
 
+  if(ST.phase==="play"&&ST.game==="fight"){
+    if(ST.stage==="ready"){
+      ST.remain=Math.max(0,FIGHT_READY-(now-HOST.phaseStart));
+      if(ST.remain>0) return beat();
+      ST.stage="go"; HOST.phaseStart=now; ST.remain=FIGHT_MS; HOST.lastB=0; HOST.fTick=now;
+      return netBroadcast();
+    }
+    ST.remain=Math.max(0,FIGHT_MS-(now-HOST.phaseStart));
+    const dt=Math.min(120,now-HOST.fTick); HOST.fTick=now;
+    HOST.fm.forEach(m=>{
+      if(m.over) return;
+      fStep(m.A,m.B,now,dt); fStep(m.B,m.A,now,dt);
+      if(m.A.hp<=0||m.B.hp<=0){ m.over=true; m.win=m.A.hp>m.B.hp?"a":m.B.hp>m.A.hp?"b":"draw"; }
+    });
+    if(HOST.fm.every(m=>m.over)||ST.remain<=0) return resolveFight();
+    pushFights();
+    if(now-HOST.lastB>=80){ HOST.lastB=now; netBroadcast(); }   // 12Hz 정도로 보낸다
+    return;
+  }
+
   if(ST.phase==="play"&&ST.game==="shell"){
     if(ST.stage==="peek"){
       ST.remain=Math.max(0,SHELL_PEEK-(now-HOST.phaseStart));
@@ -1218,6 +1384,68 @@ function hostTick(){
     if(ST.remain<=0) return advance();
     return beat();
   }
+}
+
+/* 짝짓기. 홀수면 마지막 한 명이 컴퓨터와 붙는다. */
+function makePairs(ids){
+  for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=ids[i]; ids[i]=ids[j]; ids[j]=t; }
+  HOST.fm=[];
+  for(let i=0;i<ids.length;i+=2){
+    const a=ids[i], b=(i+1<ids.length)?ids[i+1]:null;
+    HOST.fm.push({a, b, A:newFighter(28,false), B:newFighter(72,b===null), over:false, win:null});
+  }
+  pushFights();
+}
+function pushFights(){
+  ST.fights=HOST.fm.map(m=>({
+    a:m.a, b:m.b, over:m.over, win:m.win,
+    A:{x:Math.round(m.A.x*10)/10, hp:m.A.hp, p:m.A.pose, f:m.A.face||1},
+    B:{x:Math.round(m.B.x*10)/10, hp:m.B.hp, p:m.B.pose, f:m.B.face||-1}
+  }));
+}
+function fightOf(id){                              // 내가 속한 대전과 내 쪽
+  const fs=(ST&&ST.fights)||[];
+  for(let i=0;i<fs.length;i++){
+    if(fs[i].a===id) return {i, f:fs[i], me:"A", foe:"B"};
+    if(fs[i].b===id) return {i, f:fs[i], me:"B", foe:"A"};
+  }
+  return null;
+}
+function resolveFight(){
+  const now=Date.now();
+  const board=[], stay=[];
+  HOST.fm.forEach(m=>{
+    const aw = m.A.hp>m.B.hp, bw = m.B.hp>m.A.hp;
+    const res = aw?"a":bw?"b":"draw";
+    m.over=true; m.win=res;
+    // 이긴 사람은 탈출, 지거나 비기면 잔류. 컴퓨터는 명단에 없으니 잔류 대상이 아니다.
+    if(res==="a"){ if(m.b) stay.push(m.b); }
+    else if(res==="b"){ stay.push(m.a); }
+    else { stay.push(m.a); if(m.b) stay.push(m.b); }
+    board.push({id:m.a, hp:m.A.hp, win:res==="a"});
+    if(m.b) board.push({id:m.b, hp:m.B.hp, win:res==="b"});
+  });
+  pushFights();
+  const uniq=stay.filter((v,i)=>stay.indexOf(v)===i);
+  const escaped=ST.alive.length-uniq.length;
+
+  if(uniq.length===1){
+    const L=uniq[0];
+    ST.phase="result"; ST.loser=L; ST.lastLoser=L;
+    ST.note=ST.fightRound+"라운드 · 최후의 1인";
+    ST.board=board.sort((x,y)=>y.hp-x.hp)
+      .map(b=>({id:b.id, loser:b.id===L, label:b.hp+" HP"+(b.win?" 승":"")}));
+    return netBroadcast();
+  }
+  const next = uniq.length===0 ? ST.alive.slice() : uniq;
+  ST.phase="reveal";
+  ST.board=board.sort((x,y)=>y.hp-x.hp).map(b=>({id:b.id, hp:b.hp, win:b.win,
+    tag: uniq.length===0 ? "무효" : (b.win?"탈출":"잔류")}));
+  ST.note = uniq.length===0 ? "전원 승리 → 무효, 다시"
+          : (escaped?escaped+"명 탈출 · ":"")+uniq.length+"명 잔류";
+  ST.remain=REVEAL_MS; HOST.phaseStart=Date.now(); HOST.lastB=0;
+  HOST.next={game:"fight", alive:next, fightRound:ST.fightRound+1};
+  netBroadcast();
 }
 
 function resolveShell(){
@@ -1402,6 +1630,11 @@ function advance(){
     ST.roster=n.roster; ST.rematch=n.rematch;
     HOST.fuse=FUSE_MIN+Math.random()*(FUSE_MAX-FUSE_MIN);   // 재대결마다 새로 뽑되, 역시 전원 동일
     HOST.goAt=0; HOST.boomAt=0; ST.stage="count";
+  }else if(n.game==="fight"){
+    ST.game="fight"; ST.roundKey="fight-"+Date.now().toString(36);
+    ST.alive=n.alive; ST.fightRound=n.fightRound; ST.stage="ready";
+    ST.remain=FIGHT_READY; HOST.fTick=Date.now();
+    makePairs(n.alive.slice());
   }else if(n.game==="shell"){
     ST.game="shell"; ST.roundKey="shell-"+Date.now().toString(36);
     ST.alive=n.alive; ST.shellRound=n.shellRound; ST.shellAns=null; ST.stage="peek";
@@ -1452,6 +1685,14 @@ function showFatal(e){
 }
 
 let editMode=false;
+/* 이번 판의 참가자 명단에 내가 없으면 관전자 */
+function amSpectator(){
+  const m=ST;
+  if(!m||!Net.role||m.phase!=="play") return false;
+  const list=(m.game==="unique"||m.game==="rps"||m.game==="shell"||m.game==="fight")
+    ? (m.alive||[]) : (m.roster||[]);
+  return list.indexOf(ME.id)<0;
+}
 function currentView(){
   if(screen==="connecting") return "conn";
   if(screen==="fatal") return "fatal";
@@ -1461,9 +1702,8 @@ function currentView(){
   if(Net.role==="guest"&&!Net.ok) return "lost";
   const m=ST;
   if(m.phase==="lobby") return "lobby";
-  const roster=(m.game==="unique"||m.game==="rps"||m.game==="shell")?(m.alive||[]):(m.roster||[]);
   if(m.phase==="play"){
-    if(roster.indexOf(ME.id)<0) return "spec:"+m.roundKey;
+    // 관전자도 같은 게임 화면을 본다. 조작만 못 하게 막는다 (render 의 specview 처리)
     if(m.game==="bomb") return "bomb:"+m.roundKey+":"+(m.holder===ME.id?"h":"w");
     if(m.game==="nerve") return "nerve:"+m.roundKey;
     if(m.game==="roul") return "roul:"+m.roundKey;
@@ -1473,6 +1713,7 @@ function currentView(){
     if(m.game==="cafe") return "cafe:"+m.roundKey;
     if(m.game==="shell") return "shell:"+m.roundKey;
     if(m.game==="aim") return "aim:"+m.roundKey;
+    if(m.game==="fight") return "fight:"+m.roundKey;
     return "uni:"+m.roundKey+":"+(m.entries[ME.id]&&m.entries[ME.id].submitted?"s":"p");
   }
   if(m.phase==="picking") return "picking";
@@ -1493,11 +1734,23 @@ function render(){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
       nerve:vNerve, bomb:vBomb, uni:vUni, roul:vRoul, react:vReact, rps:vRps, cho:vCho, cafe:vCafe,
-      shell:vShell, aim:vAim,
+      shell:vShell, aim:vAim, fight:vFight,
       picking:vPicking, reveal:vReveal, result:vResult, spec:vSpec
      }[v.split(":")[0]]||vLobby)();
   }
+  applySpecView();
   patch(); renderRoster(); renderTop();
+}
+function applySpecView(){
+  const on=amSpectator();
+  stage.classList.toggle("specview",on);
+  const bar=stage.querySelector(".specbar");
+  if(on&&!bar){
+    const b=document.createElement("div");
+    b.className="specbar";
+    b.textContent="👀 관전 중 · 보기만 할 수 있어요";
+    stage.insertBefore(b,stage.firstChild);
+  }else if(!on&&bar) bar.remove();
 }
 function renderTop(){
   const mc=$("#meChip"), dot=$("#liveDot"), num=$("#liveNum");
@@ -2454,6 +2707,129 @@ function paintAim(){
   }
 }
 
+/* ---- 격투 ----
+   스틱맨은 어깨·엉덩이에서 뻗은 팔다리 각도만 바꿔 자세를 만든다. 0도는 아래, +는 앞쪽. */
+const F_POSE={
+  idle:{a:[40,-28],  l:[14,-14]},
+  walk:{a:[58,-48],  l:[34,-34]},
+  blk: {a:[100,88],  l:[16,-16]},
+  lp:  {a:[92,-32],  l:[16,-16]},
+  rp:  {a:[-28,98],  l:[18,-18]},
+  lk:  {a:[26,-44],  l:[78,-12]},
+  rk:  {a:[-34,30],  l:[-12,88]},
+  hit: {a:[-62,-74], l:[22,-26]}
+};
+const fight={key:"",mv:0,sent:0};
+function limbEnd(x,y,len,deg){
+  const r=deg*Math.PI/180;
+  return [x+Math.sin(r)*len, y+Math.cos(r)*len];
+}
+function figSvg(cls){
+  return '<div class="figw '+cls+'"><svg class="fig" viewBox="0 0 40 100">'+
+    '<circle class="hd" cx="20" cy="18" r="8"/>'+
+    '<line class="tr" x1="20" y1="26" x2="20" y2="58"/>'+
+    '<line class="a1"/><line class="a2"/><line class="l1"/><line class="l2"/>'+
+    '</svg></div>';
+}
+function drawFig(w,pose,x,face){
+  const P=F_POSE[pose]||F_POSE.idle, s=w.querySelector("svg");
+  const set=(sel,x1,y1,len,deg)=>{
+    const e=s.querySelector(sel), p=limbEnd(x1,y1,len,deg);
+    e.setAttribute("x1",x1); e.setAttribute("y1",y1);
+    e.setAttribute("x2",p[0].toFixed(1)); e.setAttribute("y2",p[1].toFixed(1));
+  };
+  set(".a1",20,32,19,P.a[0]); set(".a2",20,32,19,P.a[1]);
+  set(".l1",20,58,38,P.l[0]); set(".l2",20,58,38,P.l[1]);
+  w.style.left=x+"%";
+  w.style.transform="translateX(-50%) scaleX("+(face<0?-1:1)+")";
+  w.dataset.p=pose;
+}
+function vFight(){
+  keepAwake(true);
+  const m=ST, p=fightOf(ME.id), isHost=(ME.id===m.hostId);
+  const foeName = p ? (p.me==="A" ? (p.f.b?nameOf(p.f.b):"컴퓨터") : nameOf(p.f.a)) : "";
+  stage.innerHTML=
+    '<div class="fstage"><div class="farena" id="far">'+
+      '<div class="fhud">'+
+        '<div class="fside"><span class="fnm" id="fn1">'+esc(p?ME.name:"관전")+'</span>'+
+          '<div class="fhp"><i id="fh1"></i></div></div>'+
+        '<div class="fmid"><span class="ftm" id="ftm">0</span>'+
+          '<span class="frd">'+m.fightRound+'R</span></div>'+
+        '<div class="fside right"><span class="fnm" id="fn2">'+esc(foeName)+'</span>'+
+          '<div class="fhp rev"><i id="fh2"></i></div></div>'+
+      '</div>'+
+      (isHost?'<button class="fquit" id="fq">⏹</button>':'')+
+      '<div class="fground">'+figSvg("me")+figSvg("foe")+'</div>'+
+      '<div class="fbig" id="fbig"></div>'+
+      '<div class="fctl">'+
+        '<div class="fjoy" id="fj"><div class="fknob" id="fk"></div>'+
+          '<span class="fja">◀</span><span class="fjb">▶</span></div>'+
+        '<div class="fpad">'+
+          '<button class="fb p" data-k="lp">왼손</button>'+
+          '<button class="fb p" data-k="rp">오른손</button>'+
+          '<button class="fb k" data-k="lk">왼발</button>'+
+          '<button class="fb k" data-k="rk">오른발</button>'+
+        '</div></div>'+
+    '</div></div>';
+  refs.fight={me:stage.querySelector(".figw.me"), foe:stage.querySelector(".figw.foe"),
+    h1:$("#fh1"), h2:$("#fh2"), tm:$("#ftm"), big:$("#fbig"),
+    joy:$("#fj"), knob:$("#fk"), n1:$("#fn1"), n2:$("#fn2"), shown:""};
+  if(fight.key!==m.roundKey){ fight.key=m.roundKey; fight.mv=0; fight.sent=0; }
+  if(isHost) $("#fq").onclick=()=>{
+    if(confirm("진행 중인 게임을 중단하고 게임 선택으로 돌아갈까요?")) netSend({t:"lobby"});
+  };
+
+  const setMv=v=>{
+    if(fight.mv===v) return;
+    fight.mv=v; netSend({t:"fi", mv:v});
+    refs.fight.knob.style.transform="translate(-50%,-50%) translateX("+(v*26)+"px)";
+  };
+  const joy=refs.fight.joy;
+  const onMove=ev=>{
+    const b=joy.getBoundingClientRect();
+    const dx=(ev.clientX-(b.left+b.width/2))/(b.width/2);
+    setMv(dx<-0.22?-1:dx>0.22?1:0);
+  };
+  joy.addEventListener("pointerdown",ev=>{ ev.preventDefault(); joy.setPointerCapture(ev.pointerId); onMove(ev); });
+  joy.addEventListener("pointermove",ev=>{ if(joy.hasPointerCapture&&joy.hasPointerCapture(ev.pointerId)) onMove(ev); });
+  const rel=ev=>{ setMv(0); try{ joy.releasePointerCapture(ev.pointerId); }catch(e){} };
+  joy.addEventListener("pointerup",rel);
+  joy.addEventListener("pointercancel",rel);
+  joy.addEventListener("pointerleave",ev=>{ if(fight.mv) setMv(0); });
+
+  stage.querySelectorAll(".fb").forEach(b=>{
+    b.addEventListener("pointerdown",ev=>{
+      ev.preventDefault();
+      netSend({t:"fi", atk:b.dataset.k}); buzz(10);
+    });
+  });
+  paintFight();
+}
+function paintFight(){
+  const m=ST, r=refs.fight; if(!r||!m) return;
+  const p=fightOf(ME.id);
+  const left=getRemain();
+  r.tm.textContent = m.stage==="ready" ? Math.max(1,Math.ceil(left/1000)) : Math.ceil(left/1000);
+  const F = p ? p.f : (m.fights&&m.fights[0]);     // 관전자는 첫 대전을 본다
+  if(!F) return;
+  const A = p ? F[p.me] : F.A, B = p ? F[p.foe] : F.B;
+  if(!p&&r.n1.textContent!==nameOf(F.a)){ r.n1.textContent=nameOf(F.a); r.n2.textContent=F.b?nameOf(F.b):"컴퓨터"; }
+  drawFig(r.me, A.p, A.x, A.f);
+  drawFig(r.foe, B.p, B.x, B.f);
+  r.h1.style.width=A.hp+"%"; r.h2.style.width=B.hp+"%";
+  const st = m.stage==="ready" ? "ready" : F.over ? ("over"+F.win) : "go";
+  if(r.shown!==st){
+    r.shown=st;
+    if(st==="ready"){ r.big.textContent="READY"; r.big.className="fbig on"; }
+    else if(st==="go"){ r.big.textContent="FIGHT!"; r.big.className="fbig on flash"; }
+    else{
+      const iWon = p ? (F.win===p.me.toLowerCase()) : (F.win==="a");
+      r.big.textContent = F.win==="draw" ? "DRAW" : (iWon?"WIN":"LOSE");
+      r.big.className="fbig on "+(F.win==="draw"?"":(iWon?"win":"lose"));
+    }
+  }
+}
+
 /* ---- 게임 랜덤 고르기 ---- */
 function vPicking(){
   keepAwake(true);
@@ -2493,6 +2869,12 @@ function paintPicking(){
 function vReveal(){
   const m=ST;
   const body = m.game==="nerve" ? boardHTML(m.board||[],null)
+    : m.game==="fight" ?
+      '<div class="revealgrid">'+(m.board||[]).map(b=>{
+        const cls=b.win?"rv uniq":"rv stay";
+        return '<span class="'+cls+'"><span>'+esc(emojiOf(b.id))+'</span><span>'+esc(nameOf(b.id))+'</span>'+
+          '<span class="num">'+b.hp+'</span><span class="tg">'+esc(b.tag||"")+'</span></span>';
+      }).join("")+'</div>'
     : m.game==="shell" ?
       '<div class="cpuhand"><span class="lab2">공이 있던 컵</span>'+
       '<span class="big">🥤</span>'+
@@ -2521,7 +2903,8 @@ function vReveal(){
       }).join("")+'</div>';
   stage.innerHTML='<div class="eyebrow">'+esc(m.note||"공개")+'</div>'+
     '<h2 class="title" style="margin-top:-8px">'+
-      (m.game==="nerve"?"점수 공개":m.game==="rps"||m.game==="shell"?"결과 공개":"숫자 공개")+'</h2>'+
+      (m.game==="nerve"?"점수 공개"
+        :(m.game==="rps"||m.game==="shell"||m.game==="fight")?"결과 공개":"숫자 공개")+'</h2>'+
     body+'<div class="panel center"><span class="lead">다음 라운드까지 '+
     '<b id="rc" style="color:var(--amber);font-family:var(--mono)">6</b>초</span></div>';
   refs.rc=$("#rc");
@@ -2681,6 +3064,7 @@ function patch(){
     refs.aim.bar.parentNode.classList.toggle("warn",!counting);
     paintAim();
   }
+  if(refs.fight&&m.phase==="play"&&m.game==="fight") paintFight();
   if(refs.pick&&m.phase==="picking") paintPicking();
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
 }
@@ -2690,7 +3074,8 @@ let rk="";
 function renderRoster(){
   if(!ST||!Net.role){ rosterEl.innerHTML=""; rk=""; return; }
   const m=ST;
-  let ids = (m.phase==="play"&&(m.game==="unique"||m.game==="rps"||m.game==="shell")) ? m.alive.slice()
+  let ids = (m.phase==="play"&&(m.game==="unique"||m.game==="rps"||m.game==="shell"||m.game==="fight"))
+          ? m.alive.slice()
           : (m.phase==="play") ? m.roster.slice()
           : m.order.filter(id=>m.players[id].on);
   const key=ids.join(",")+"|"+m.phase+m.game+m.holder+m.roundKey;
