@@ -139,7 +139,9 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 
 /* 1~50 을 담아야 하므로 칸을 가로로 넓고 세로로 낮게 — 탭 영역은 지키면서 전체 높이를 줄인다 */
 /* 격투 — 화면 전체를 덮고, 세로 모드에서는 무대를 90도 돌려 가로로 쓴다 */
-.fstage{position:fixed;inset:0;z-index:60;background:#0C0A07;overflow:hidden}
+.fstage{position:fixed;inset:0;z-index:60;background:#0C0A07;overflow:hidden;
+  touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 /* 그리드 중앙 정렬은 화면보다 큰 요소를 브라우저마다 다르게 두어 밖으로 밀려났다.
    절대 위치 + translate 로 중심을 못 박고, 높이도 직접 줘서 aspect-ratio 에 기대지 않는다. */
 .farena{position:absolute;left:50%;top:50%;transform-origin:50% 50%;
@@ -1806,7 +1808,8 @@ function render(){
     toast("방장이 게임을 중단했어요");
   prevPhase=p;
   const v=currentView();
-  if(v.split(":")[0]!=="aim") document.body.classList.remove("noscroll");
+  const vk0=v.split(":")[0];
+  if(vk0!=="aim"&&vk0!=="fight") document.body.classList.remove("noscroll");
   if(v!==viewKey){
     viewKey=v; const keep=refs.msg; refs={msg:keep}; stage.innerHTML="";
     ({name:vName, entry:vEntry, conn:vConn, fatal:vFatal, lost:vLost, lobby:vLobby,
@@ -2872,6 +2875,23 @@ function vFight(){
   if(isHost) $("#fq").onclick=()=>{
     if(confirm("진행 중인 게임을 중단하고 게임 선택으로 돌아갈까요?")) netSend({t:"lobby"});
   };
+
+  /* 확대·스크롤 차단. touch-action:none 으로 대부분 막히지만 iOS 는
+     두 손가락 제스처와 더블탭을 따로 막아 줘야 한다. 격투 화면에서만 적용한다. */
+  document.body.classList.add("noscroll");
+  const fst=stage.querySelector(".fstage");
+  const stop=ev=>ev.preventDefault();
+  ["gesturestart","gesturechange","gestureend"].forEach(t=>
+    fst.addEventListener(t,stop,{passive:false}));
+  fst.addEventListener("dblclick",stop);
+  fst.addEventListener("contextmenu",stop);
+  fst.addEventListener("touchmove",ev=>{ if(ev.touches.length>1) ev.preventDefault(); },{passive:false});
+  let lastTap=0;
+  fst.addEventListener("touchend",ev=>{
+    const t=Date.now();
+    if(t-lastTap<330) ev.preventDefault();      // 더블탭 확대 차단
+    lastTap=t;
+  },{passive:false});
 
   const joy=refs.fight.joy, knob=refs.fight.knob;
   const apply=(mv,up,dn,kx,ky)=>{
