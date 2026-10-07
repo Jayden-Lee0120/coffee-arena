@@ -194,19 +194,12 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .fctl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;
   justify-content:space-between;padding:10px 14px;gap:10px}
 /* vmin 은 세로·가로에서 같은 값이라, 90도 돌아간 무대 안에서도 크기가 일정하다 */
-.fjoy{position:relative;width:30vmin;height:30vmin;border-radius:50%;
-  background:rgba(47,39,29,.9);border:1px solid var(--line);touch-action:none;flex:0 0 auto}
-.fring{position:absolute;inset:16%;border-radius:50%;border:1px dashed rgba(165,145,122,.35);
-  pointer-events:none}
-/* 자식들은 탭 대상에서 빼야 offsetX/Y 가 항상 조이스틱 기준으로 들어온다 */
-.fjl{position:absolute;font-size:2.2vmin;color:var(--muted);pointer-events:none}
-.fjl.u{top:3%;left:50%;transform:translateX(-50%)}
-.fjl.d{bottom:3%;left:50%;transform:translateX(-50%)}
-.fjl.l{left:4%;top:50%;transform:translateY(-50%)}
-.fjl.r{right:4%;top:50%;transform:translateY(-50%)}
-.fknob{position:absolute;left:50%;top:50%;width:38%;height:38%;border-radius:50%;
-  background:var(--cream);transform:translate(-50%,-50%);transition:transform .06s ease-out;
-  pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.fdpad{display:grid;grid-template-columns:repeat(3,11vmin);grid-template-rows:repeat(3,11vmin);
+  gap:.8vmin;flex:0 0 auto}
+.fd{border-radius:22%;background:rgba(47,39,29,.92);border:2px solid var(--line);
+  color:var(--cream);font-size:4vmin;line-height:1;display:grid;place-items:center;touch-action:none}
+.fd.u{grid-area:1/2} .fd.l{grid-area:2/1} .fd.r{grid-area:2/3} .fd.d{grid-area:3/2}
+.fd.on{background:rgba(245,165,36,.3);border-color:var(--amber);color:var(--amber)}
 .fpad{display:grid;grid-template-columns:repeat(2,1fr);gap:2.2vmin;flex:0 0 auto}
 .fb{width:17vmin;height:12.5vmin;border-radius:18%;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:.2vmin;
@@ -520,8 +513,10 @@ const AIM_COUNT=3000, AIM_MS=15000, AIM_POOL=6;           // 과녁: 카운트�
 /* 격투 — 1대1 동시 대전. 짝이 없으면 컴퓨터가 상대한다.
    판정은 전부 방장이 하고(30Hz), 화면에는 12Hz 로 보낸 뒤 각 기기가 보간해 그린다. */
 const FIGHT_READY=3000, FIGHT_MS=60000, FIGHT_HP=100;
-const F_MINX=9, F_MAXX=91, F_GAP=9, F_SPEED=34, F_BSPEED=17, F_STUN=230;
-const F_GRAV=380, F_JUMPV=122, F_AIRX=30, F_REACHY=22;  // 체공 0.64초, 최고 높이 20
+const F_MINX=9, F_MAXX=91, F_GAP=9, F_SPEED=34, F_BSPEED=17;
+const F_HITFX=180;                                      // 맞은 자세를 보여줄 시간 (조작은 안 묶인다)
+const F_GRAV=380, F_JUMPV=122, F_REACHY=22;             // 체공 0.64초, 최고 높이 20
+const F_CROUCH_PEN=3;                                   // 앉아서 공격하면 사거리가 줄어든다
 const F_ATK={                         // A B C D
   lp:{btn:"A", nm:"약손", st:80,  dur:270, reach:15, dmg:5 },
   rp:{btn:"B", nm:"강손", st:135, dur:370, reach:17, dmg:8 },
@@ -529,39 +524,36 @@ const F_ATK={                         // A B C D
   rk:{btn:"D", nm:"강발", st:245, dur:630, reach:24, dmg:16}
 };
 function newFighter(x,cpu){
-  return {x, y:0, vy:0, ax:0, hp:FIGHT_HP, mv:0, upHeld:false, dn:false,
-          atk:null, hitDone:false, stun:0, cd:0, crouch:false,
+  return {x, y:0, vy:0, hp:FIGHT_HP, mv:0, upHeld:false, dn:false,
+          atk:null, hitDone:false, hitAt:0, cd:0, crouch:false,
           hs:0, hd:0, hg:false, cpu:!!cpu, think:0, pose:"idle"};
 }
 function fStart(f,k,now){
   const a=F_ATK[k]; if(!a) return;
-  if(f.stun>now||f.cd>now||f.atk) return;
+  if(f.cd>now||f.atk) return;
   f.atk={k,t0:now}; f.hitDone=false; f.cd=now+a.dur;
 }
-function fJump(me,now){
-  if(me.y>0||me.atk||me.stun>now) return;
-  me.vy=F_JUMPV; me.ax=me.mv*F_AIRX;            // 조이스틱을 기울인 채 올리면 대각 점프
+function fJump(me){
+  if(me.y>0||me.atk) return;
+  me.vy=F_JUMPV;                                // 항상 수직으로만 뛴다
 }
 function fStep(me,foe,now,dt){
   const face = foe.x>me.x ? 1 : -1;
   me.face=face;
   if(me.cpu) cpuThink(me,foe,now,face);
-  const stunned=me.stun>now;
   const air = me.y>0 || me.vy!==0;
 
   if(air){                                       // 공중 — 중력만 받는다
     me.vy-=F_GRAV*dt/1000;
     me.y+=me.vy*dt/1000;
-    let nx=clamp(me.x+me.ax*dt/1000,F_MINX,F_MAXX);
-    if(Math.abs(nx-foe.x)>=F_GAP) me.x=nx;
-    if(me.y<=0){ me.y=0; me.vy=0; me.ax=0; }
+    if(me.y<=0){ me.y=0; me.vy=0; }
     me.crouch=false; me.block=false;
   }else{
-    me.crouch = !!me.dn && !stunned && !me.atk;
+    me.crouch = !!me.dn;                         // 공격 중에도 앉은 자세를 유지한다
     // 상대 반대쪽으로 움직이면 막기 자세가 된다 (스트리트파이터 방식)
-    const blocking = !stunned && !me.atk && !me.crouch && me.mv!==0 && Math.sign(me.mv)!==face;
+    const blocking = !me.atk && !me.crouch && me.mv!==0 && Math.sign(me.mv)!==face;
     me.block=blocking;
-    if(!stunned && !me.atk && !me.crouch && me.mv!==0){
+    if(!me.atk && !me.crouch && me.mv!==0){
       const sp=(blocking?F_BSPEED:F_SPEED)*dt/1000;
       let nx=clamp(me.x+me.mv*sp,F_MINX,F_MAXX);
       if(Math.abs(nx-foe.x)<F_GAP) nx=me.x;      // 서로 통과하지 않게
@@ -573,21 +565,22 @@ function fStep(me,foe,now,dt){
     const a=F_ATK[me.atk.k], el=now-me.atk.t0;
     if(!me.hitDone && el>=a.st){
       me.hitDone=true;
-      const inX=Math.abs(foe.x-me.x)<=a.reach+F_GAP;
+      const reach=a.reach-(me.crouch?F_CROUCH_PEN:0);
+      const inX=Math.abs(foe.x-me.x)<=reach+F_GAP;
       const inY=Math.abs(me.y-foe.y)<=F_REACHY;  // 점프로 띄우면 지상 공격을 피한다
       if(inX&&inY){
         const guard = foe.block || foe.crouch;
         const dmg = guard ? Math.max(1,Math.round(a.dmg*(foe.block?0.25:0.45))) : a.dmg;
         foe.hp=Math.max(0,foe.hp-dmg);
         foe.hs=(foe.hs+1)%1000; foe.hd=dmg; foe.hg=!!guard;   // 피격 연출용
-        if(!guard){ foe.stun=now+F_STUN; foe.atk=null; }
+        if(!guard) foe.hitAt=now;                // 자세만 잠깐 바뀌고 조작은 묶이지 않는다
         foe.x=clamp(foe.x+face*(guard?3:6),F_MINX,F_MAXX);
       }
     }
     if(el>=a.dur) me.atk=null;
   }
-  me.pose = me.stun>now ? "hit"
-          : me.atk ? me.atk.k
+  me.pose = me.atk ? me.atk.k
+          : me.hitAt>now-F_HITFX ? "hit"
           : me.y>0.5 ? "jmp"
           : me.crouch ? "crh"
           : me.block ? "blk"
@@ -599,9 +592,13 @@ function cpuThink(me,foe,now,face){
   const d=Math.abs(foe.x-me.x);
   me.dn=false;
   if(me.y>0) return;
-  if(d>26){ me.mv=face; if(Math.random()<0.10) fJump(me,now); return; }
-  if(Math.random()<0.10){ me.dn=true; me.mv=0; return; }   // 가끔 앉기
-  if(Math.random()<0.08){ me.mv=face; fJump(me,now); return; }
+  if(d>26){ me.mv=face; if(Math.random()<0.08) fJump(me); return; }
+  if(Math.random()<0.12){                                  // 가끔 앉아서 공격
+    me.dn=true; me.mv=0;
+    if(!me.atk&&me.cd<=now&&d<=F_ATK.lk.reach+F_GAP) fStart(me,Math.random()<0.5?"lk":"lp",now);
+    return;
+  }
+  if(Math.random()<0.07){ me.mv=0; fJump(me); return; }
   if(Math.random()<0.18){ me.mv=-face; return; }           // 가끔 물러나며 막기
   me.mv = d<13 ? (Math.random()<0.5?-face:0) : 0;
   if(!me.atk&&me.cd<=now){
@@ -1171,7 +1168,7 @@ function handleAction(from,d){
       if(d.dn!==undefined) me.dn=!!d.dn;
       if(d.up!==undefined){
         const was=me.upHeld; me.upHeld=!!d.up;
-        if(!was&&me.upHeld) fJump(me,now);          // 누르는 순간에만 뛴다
+        if(!was&&me.upHeld) fJump(me);              // 누르는 순간에만 뛴다
       }
       if(d.atk) fStart(me,String(d.atk),now);
       return;                                      // 다음 틱에 같이 방송된다
@@ -1477,9 +1474,9 @@ function pushFights(){
   ST.fights=HOST.fm.map(m=>({
     a:m.a, b:m.b, over:m.over, win:m.win,
     A:{x:Math.round(m.A.x*10)/10, y:Math.round(m.A.y*10)/10, hp:m.A.hp, p:m.A.pose,
-       f:m.A.face||1, hs:m.A.hs, hd:m.A.hd, hg:m.A.hg},
+       c:m.A.crouch?1:0, f:m.A.face||1, hs:m.A.hs, hd:m.A.hd, hg:m.A.hg},
     B:{x:Math.round(m.B.x*10)/10, y:Math.round(m.B.y*10)/10, hp:m.B.hp, p:m.B.pose,
-       f:m.B.face||-1, hs:m.B.hs, hd:m.B.hd, hg:m.B.hg}
+       c:m.B.crouch?1:0, f:m.B.face||-1, hs:m.B.hs, hd:m.B.hd, hg:m.B.hg}
   }));
 }
 function fightOf(id){                              // 내가 속한 대전과 내 쪽
@@ -2818,7 +2815,9 @@ function figSvg(cls){
 }
 function drawFig(w,fd){
   const pose=fd.p||"idle", P=F_POSE[pose]||F_POSE.idle, s=w.querySelector("svg");
-  const hip=P.hip||58, ll=P.ll||38, al=P.al||23;
+  // 앉은 채 공격하면 팔 각도는 공격 자세를 쓰고 골반·다리만 앉은 값으로 바꾼다
+  const cr=fd.c&&pose!=="jmp"&&pose!=="crh";
+  const hip=cr?79:(P.hip||58), ll=cr?23:(P.ll||38), al=P.al||23;
   const head=hip-40, sh=hip-26;                 // 골반을 기준으로 상체가 따라 내려간다
   const set=(sel,x1,y1,len,deg)=>{
     const e=s.querySelector(sel), p=limbEnd(x1,y1,len,deg);
@@ -2829,7 +2828,8 @@ function drawFig(w,fd){
   const tr=s.querySelector(".tr");
   tr.setAttribute("y1",(head+8).toFixed(1)); tr.setAttribute("y2",hip.toFixed(1));
   set(".a1",20,sh,al,P.a[0]); set(".a2",20,sh,al,P.a[1]);
-  set(".l1",20,hip,ll,P.l[0]); set(".l2",20,hip,ll,P.l[1]);
+  const L = (cr && pose[1]==="p") ? [37,-33] : P.l;   // 앉아 손 공격은 다리를 접고, 발 공격은 차는 다리를 살린다
+  set(".l1",20,hip,ll,L[0]); set(".l2",20,hip,ll,L[1]);
   w.style.left=fd.x+"%";
   w.style.bottom=((fd.y||0)/30*55).toFixed(1)+"%";
   w.style.transform="translateX(-50%) scaleX("+((fd.f||1)<0?-1:1)+")";
@@ -2856,9 +2856,11 @@ function vFight(){
         '<div class="fx" id="fx1"></div><div class="fx" id="fx2"></div></div>'+
       '<div class="fbig" id="fbig"></div>'+
       '<div class="fctl">'+
-        '<div class="fjoy" id="fj"><div class="fring"></div><div class="fknob" id="fk"></div>'+
-          '<span class="fjl u">▲</span><span class="fjl d">▼</span>'+
-          '<span class="fjl l">◀</span><span class="fjl r">▶</span></div>'+
+        '<div class="fdpad">'+
+          '<button class="fd u" data-d="u">▲</button>'+
+          '<button class="fd l" data-d="l">◀</button>'+
+          '<button class="fd r" data-d="r">▶</button>'+
+          '<button class="fd d" data-d="d">▼</button></div>'+
         '<div class="fpad">'+
           Object.keys(F_ATK).map(k=>'<button class="fb '+(k[1]==="p"?"p":"k")+'" data-k="'+k+'">'+
             '<b>'+F_ATK[k].btn+'</b><span>'+F_ATK[k].nm+'</span></button>').join("")+
@@ -2866,8 +2868,7 @@ function vFight(){
     '</div></div>';
   refs.fight={arena:$("#far"), me:stage.querySelector(".figw.me"), foe:stage.querySelector(".figw.foe"),
     h1:$("#fh1"), h2:$("#fh2"), v1:$("#hv1"), v2:$("#hv2"), tm:$("#ftm"), big:$("#fbig"),
-    fx1:$("#fx1"), fx2:$("#fx2"), joy:$("#fj"), knob:$("#fk"),
-    n1:$("#fn1"), n2:$("#fn2"), shown:""};
+    fx1:$("#fx1"), fx2:$("#fx2"), n1:$("#fn1"), n2:$("#fn2"), shown:""};
   if(fight.key!==m.roundKey){
     fight.key=m.roundKey; fight.mv=0; fight.up=false; fight.dn=false;
     fight.hs={me:-1,foe:-1};
@@ -2893,40 +2894,23 @@ function vFight(){
     lastTap=t;
   },{passive:false});
 
-  const joy=refs.fight.joy, knob=refs.fight.knob;
-  const apply=(mv,up,dn,kx,ky)=>{
-    knob.style.transform="translate(-50%,-50%) translate("+kx.toFixed(1)+"%,"+ky.toFixed(1)+"%)";
-    if(mv===fight.mv&&up===fight.up&&dn===fight.dn) return;
-    fight.mv=mv; fight.up=up; fight.dn=dn;
-    netSend({t:"fi", mv, up, dn});
+  // 방향키 — 누르고 있는 동안만 입력. 좌우는 이동, ▼ 는 앉기, ▲ 는 누르는 순간 점프.
+  const held={l:false,r:false,u:false,d:false};
+  const push=()=>{
+    const mv = held.l===held.r ? 0 : (held.l?-1:1);
+    if(mv===fight.mv&&held.u===fight.up&&held.d===fight.dn) return;
+    fight.mv=mv; fight.up=held.u; fight.dn=held.d;
+    netSend({t:"fi", mv, up:held.u, dn:held.d});
   };
-  // 세로 모드에서는 무대가 90도 돌아가 있어 clientX/Y 는 화면 축이라 쓸 수 없다.
-  // offsetX/Y 는 조이스틱 자신의 좌표계로 들어오므로 회전과 무관하게 맞는다.
-  const onMove=ev=>{
-    const w=joy.clientWidth||1, h=joy.clientHeight||1;
-    let nx=((ev.offsetX==null?w/2:ev.offsetX)-w/2)/(w/2);
-    let ny=((ev.offsetY==null?h/2:ev.offsetY)-h/2)/(h/2);
-    const r=Math.sqrt(nx*nx+ny*ny);
-    if(r>1){ nx/=r; ny/=r; }                       // 테두리 밖으로는 안 나간다
-    const dz=0.32;
-    const up=ny<-dz, dn=ny>dz&&!up;
-    apply(nx<-dz?-1:nx>dz?1:0, up, dn, nx*34, ny*34);
-  };
-  joy.addEventListener("pointerdown",ev=>{
-    ev.preventDefault();
-    try{ joy.setPointerCapture(ev.pointerId); }catch(e){}
-    onMove(ev);
+  stage.querySelectorAll(".fd").forEach(b=>{
+    const k=b.dataset.d;
+    const on=ev=>{ ev.preventDefault(); if(held[k]) return; held[k]=true; b.classList.add("on"); push(); };
+    const off=()=>{ if(!held[k]) return; held[k]=false; b.classList.remove("on"); push(); };
+    b.addEventListener("pointerdown",on);
+    b.addEventListener("pointerup",off);
+    b.addEventListener("pointercancel",off);
+    b.addEventListener("pointerleave",off);
   });
-  joy.addEventListener("pointermove",ev=>{
-    if(joy.hasPointerCapture&&!joy.hasPointerCapture(ev.pointerId)) return;
-    ev.preventDefault(); onMove(ev);
-  });
-  const rel=ev=>{
-    apply(0,false,false,0,0);
-    try{ joy.releasePointerCapture(ev.pointerId); }catch(e){}
-  };
-  joy.addEventListener("pointerup",rel);
-  joy.addEventListener("pointercancel",rel);
 
   stage.querySelectorAll(".fb").forEach(b=>{
     b.addEventListener("pointerdown",ev=>{
