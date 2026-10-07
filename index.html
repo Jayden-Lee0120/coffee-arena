@@ -153,8 +153,10 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 }
 .fhud{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr auto 1fr;
   gap:10px;padding:8px 12px;align-items:start}
-.fside{display:flex;flex-direction:column;gap:4px}
-.fside.right{align-items:flex-end}
+.fside{display:flex;flex-direction:column;gap:.7vmin;min-width:0}
+/* align-items:flex-end 를 쓰면 체력바가 내용 크기(0)로 줄어 사라진다. 정렬은 text-align 으로. */
+.fside.right{text-align:right}
+.fside .fhp{width:100%}
 .fnm{font-size:2.2vmin;color:var(--cream);max-width:100%;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .fhp{height:2.2vmin;min-height:11px;border-radius:5px;background:#3A2E20;
@@ -515,9 +517,9 @@ const AIM_COUNT=3000, AIM_MS=15000, AIM_POOL=6;           // 과녁: 카운트�
 
 /* 격투 — 1대1 동시 대전. 짝이 없으면 컴퓨터가 상대한다.
    판정은 전부 방장이 하고(30Hz), 화면에는 12Hz 로 보낸 뒤 각 기기가 보간해 그린다. */
-const FIGHT_READY=3000, FIGHT_MS=40000, FIGHT_HP=100;
+const FIGHT_READY=3000, FIGHT_MS=60000, FIGHT_HP=100;
 const F_MINX=9, F_MAXX=91, F_GAP=9, F_SPEED=34, F_BSPEED=17, F_STUN=230;
-const F_GRAV=190, F_JUMPV=96, F_AIRX=28, F_REACHY=22;   // 중력 / 점프 초속 / 대각 점프 횡속
+const F_GRAV=380, F_JUMPV=122, F_AIRX=30, F_REACHY=22;  // 체공 0.64초, 최고 높이 20
 const F_ATK={                         // A B C D
   lp:{btn:"A", nm:"약손", st:80,  dur:270, reach:15, dmg:5 },
   rp:{btn:"B", nm:"강손", st:135, dur:370, reach:17, dmg:8 },
@@ -2784,12 +2786,15 @@ function paintAim(){
 
 /* ---- 격투 ----
    스틱맨은 어깨·엉덩이에서 뻗은 팔다리 각도만 바꿔 자세를 만든다. 0도는 아래, +는 앞쪽. */
+/* a: 두 팔 각도, l: 두 다리 각도 (0도는 아래, +는 앞쪽)
+   hip: 골반 높이 — 이 값을 내리면 다리를 접고 주저앉는 모습이 된다 (기본 58)
+   ll/al: 다리·팔 길이 (기본 38 / 23) */
 const F_POSE={
   idle:{a:[40,-28],  l:[14,-14]},
   walk:{a:[58,-48],  l:[34,-34]},
   blk: {a:[100,88],  l:[16,-16]},
-  jmp: {a:[128,112], l:[52,22]},
-  crh: {a:[62,-10],  l:[58,-52]},
+  jmp: {a:[132,116], l:[46,16],  hip:54, ll:31},
+  crh: {a:[76,-2],   l:[37,-33], hip:79, ll:23},   // 무릎을 접고 낮게 웅크림
   lp:  {a:[92,-32],  l:[16,-16]},
   rp:  {a:[-28,98],  l:[18,-18]},
   lk:  {a:[26,-44],  l:[78,-12]},
@@ -2804,23 +2809,27 @@ function limbEnd(x,y,len,deg){
 function figSvg(cls){
   return '<div class="figw '+cls+'"><svg class="fig" viewBox="0 0 40 100">'+
     '<circle class="hd" cx="20" cy="18" r="8"/>'+
-    '<line class="tr" x1="20" y1="26" x2="20" y2="58"/>'+
+    '<line class="tr" x1="20" x2="20"/>'+
     '<line class="a1"/><line class="a2"/><line class="l1"/><line class="l2"/>'+
     '</svg></div>';
 }
 function drawFig(w,fd){
   const pose=fd.p||"idle", P=F_POSE[pose]||F_POSE.idle, s=w.querySelector("svg");
+  const hip=P.hip||58, ll=P.ll||38, al=P.al||23;
+  const head=hip-40, sh=hip-26;                 // 골반을 기준으로 상체가 따라 내려간다
   const set=(sel,x1,y1,len,deg)=>{
     const e=s.querySelector(sel), p=limbEnd(x1,y1,len,deg);
-    e.setAttribute("x1",x1); e.setAttribute("y1",y1);
+    e.setAttribute("x1",x1); e.setAttribute("y1",y1.toFixed(1));
     e.setAttribute("x2",p[0].toFixed(1)); e.setAttribute("y2",p[1].toFixed(1));
   };
-  set(".a1",20,32,19,P.a[0]); set(".a2",20,32,19,P.a[1]);
-  set(".l1",20,58,38,P.l[0]); set(".l2",20,58,38,P.l[1]);
+  s.querySelector(".hd").setAttribute("cy",head.toFixed(1));
+  const tr=s.querySelector(".tr");
+  tr.setAttribute("y1",(head+8).toFixed(1)); tr.setAttribute("y2",hip.toFixed(1));
+  set(".a1",20,sh,al,P.a[0]); set(".a2",20,sh,al,P.a[1]);
+  set(".l1",20,hip,ll,P.l[0]); set(".l2",20,hip,ll,P.l[1]);
   w.style.left=fd.x+"%";
   w.style.bottom=((fd.y||0)/30*55).toFixed(1)+"%";
-  w.style.transform="translateX(-50%) scaleX("+((fd.f||1)<0?-1:1)+")"+
-    (pose==="crh"?" scaleY(.74)":"");
+  w.style.transform="translateX(-50%) scaleX("+((fd.f||1)<0?-1:1)+")";
   w.dataset.p=pose;
 }
 function vFight(){
