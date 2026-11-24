@@ -402,6 +402,10 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
 .rv .tg{font-size:11px;color:var(--muted)}
 .rv.uniq{border-color:var(--mint);background:rgba(78,217,164,.12)}
 .rv.uniq .num{color:var(--mint)}
+dialog.pop{border:1px solid var(--line);border-radius:16px;padding:16px;max-width:360px;
+  width:calc(100% - 36px);background:var(--surface);color:var(--cream);
+  display:flex;flex-direction:column;gap:12px}
+dialog.pop::backdrop{background:rgba(0,0,0,.62)}
 .rv.stay{border-color:rgba(255,92,62,.5)}
 .rv.stay .num{color:var(--ember)}
 .rv.miss{opacity:.5}
@@ -464,6 +468,13 @@ input.codein{font-family:var(--mono);font-size:22px;letter-spacing:.3em;text-ali
   <main id="stage"></main>
   <footer class="roster" id="roster"></footer>
 </div>
+
+<dialog class="pop" id="menupop">
+  <div><div class="eyebrow">오늘의 주문</div>
+  <h2 class="title" id="mpWho" style="margin-top:4px"></h2></div>
+  <div class="revealgrid" id="mpl"></div>
+  <button class="btn" id="mpClose">확인</button>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -3082,7 +3093,7 @@ function menuPanelHTML(label,showList){
       '<div class="revealgrid" id="ml"></div></div>':'');
 }
 function wireMenu(){
-  refs.menu={inp:$("#mw"), ok:$("#mok"), note:$("#mn"), list:$("#ml"), key:null};
+  refs.menu={inp:$("#mw"), ok:$("#mok"), note:$("#mn"), list:$("#ml"), pop:$("#mpl"), key:null};
   refs.menu.inp.value=(ST.menu||{})[ME.id]||"";
   const save=()=>{ netSend({t:"menu", text:refs.menu.inp.value}); buzz(15); };
   refs.menu.ok.onclick=save;
@@ -3099,11 +3110,21 @@ function paintMenu(){
   r.key=key;
   r.note.textContent=mine?("저장됨 · "+ids.length+"/"+m.order.length+"명 작성"):
                            (ids.length+"/"+m.order.length+"명 작성");
-  if(r.list) r.list.innerHTML=ids.map(id=>
+  const rows=ids.map(id=>
     '<span class="rv'+(id===ME.id?" uniq":"")+'"><span>'+esc(emojiOf(id))+'</span>'+
     '<span>'+esc(nameOf(id))+'</span><span class="num">'+esc(m.menu[id])+'</span></span>').join("")
     || '<span class="note">아직 아무도 안 적었어요</span>';
+  if(r.list) r.list.innerHTML=rows;
+  if(r.pop) r.pop.innerHTML=rows;                // 팝업이 열려 있으면 수정도 바로 반영된다
 }
+/* 결과가 나오면 주문 목록을 팝업으로 한 번 띄운다. 아무도 안 적었으면 띄울 게 없다. */
+function openMenuPop(loser){
+  const d=$("#menupop"); if(!d||!d.showModal||d.open) return;
+  if(!ST.order.some(id=>(ST.menu||{})[id])) return;
+  $("#mpWho").textContent=nameOf(loser)+"님, 이거 사주세요";
+  d.showModal();
+}
+function closeMenuPop(){ const d=$("#menupop"); if(d&&d.open) d.close(); }
 function vResult(){
   keepAwake(false);
   const m=ST,L=m.loser;
@@ -3135,6 +3156,7 @@ function vResult(){
         '<button class="btn" id="other">다른 게임</button></div>'
       : '<div class="panel center"><span class="lead">방장이 다음 게임을 고르는 중이에요</span></div>');
   wireMenu();
+  openMenuPop(L);
   if(ME.id===m.hostId){
     $("#again").onclick=()=>netSend({t:"start",game:m.game,trials:m.trials||reactN});
     $("#other").onclick=()=>netSend({t:"lobby"});
@@ -3250,6 +3272,7 @@ function patch(){
   if(refs.pick&&m.phase==="picking") paintPicking();
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
   if(refs.menu) paintMenu();
+  if(m.phase!=="result") closeMenuPop();
 }
 
 /* ---- 참가자 칩 ---- */
@@ -3315,6 +3338,7 @@ if(typeof Peer==="undefined"){
     if(Net.role) return;                       // 방에 들어간 뒤에는 바꿀 수 없다
     editMode=true; viewKey=""; render();
   };
+  $("#mpClose").onclick=()=>closeMenuPop();
   $("#abort").onclick=()=>{
     if(!ST||Net.role!=="host"||ST.phase==="lobby") return;
     if(confirm("진행 중인 게임을 중단하고 게임 선택으로 돌아갈까요?")) netSend({t:"lobby"});
