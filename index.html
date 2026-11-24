@@ -503,7 +503,8 @@ const GAMES={
   cafe:{icon:"☕",name:"카페 랜덤 고르기",ds:"방장이 후보 카페를 적으면 룰렛으로 오늘 갈 곳을 정합니다. 커피값과는 별개예요."},
   random:{icon:"🎲",name:"게임 랜덤 고르기",ds:"아래 게임 중 하나를 무작위로 골라 그대로 시작합니다."}
 };
-const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho","shell","aim","fight"];
+// 격투 비활성화: 이 배열이 로비 목록과 랜덤 뽑기의 유일한 출처라 여기서 빼면 어디에도 안 나온다
+const PLAY_GAMES=["nerve","bomb","unique","roul","react","rps","cho","shell","aim"];
 const MENU=["cafe","random"].concat(PLAY_GAMES);
 const MAX_CAFE=20;
 const PICK_SHUFFLE=3000, PICK_REVEAL=1600;   // 랜덤 고르기: 섞는 시간 / 공개 후 시작까지
@@ -987,7 +988,7 @@ function initHostState(){
     cafes:[], cafePick:null, shell:null, shellRound:1, shellAns:null, aim:null,
     fights:null, fightRound:1,
     holder:null, from:null, passes:0,
-    entries:{}, board:null, note:"", loser:null, lastLoser:null,
+    entries:{}, board:null, note:"", loser:null, lastLoser:null, menu:{},
     rematch:0, remain:0
   };
   ST.players[ME.id]={name:ME.name, emoji:ME.emoji, on:true};
@@ -1123,6 +1124,13 @@ function handleAction(from,d){
       ST.remain=PICK_SHUFFLE; ST.aborted=false;
       return netBroadcast();
     }
+    case "menu": {                                     // 로비(게임 전)와 결과 화면에서 각자 마실 것을 적는다
+      if(ST.phase!=="lobby"&&ST.phase!=="result") return;
+      if(!ST.players[from]) return;
+      const t=String(d.text||"").replace(/\s+/g," ").trim().slice(0,24);
+      if(t) ST.menu[from]=t; else delete ST.menu[from];
+      return netBroadcast();
+    }
     case "spec": {                                     // 각자 자기 관전 여부만 바꾼다
       const p=ST.players[from]; if(!p) return;
       p.spec=!!d.on;
@@ -1225,7 +1233,7 @@ function startGame(g,trials,cafes){
   if(g==="react") ST.trials=clamp(Math.round(trials||REACT_TRIALS),1,20);
   ST.phase="play"; ST.game=g; ST.roundKey=g+"-"+Date.now().toString(36);
   ST.roster=roster.slice(); ST.entries={}; ST.board=null; ST.note=""; ST.loser=null;
-  ST.rematch=0; ST.from=null; ST.passes=0;
+  ST.rematch=0; ST.from=null; ST.passes=0;   // ST.menu 는 게임 전에 적어두므로 비우지 않는다
   HOST.picks={}; HOST.phaseStart=Date.now(); HOST.next=null; HOST.lastB=0;
   ST.remain = g==="nerve"?NV_COUNT : g==="unique"?UNI_LIMIT : g==="react"?REACT_LIMIT
             : g==="rps"?RPS_LIMIT : g==="cho"?NV_COUNT
@@ -1957,6 +1965,7 @@ function vLobby(){
     '<p class="lead" style="margin-top:6px">'+
       (isHost?"방장인 당신이 고른 게임으로 전원이 함께 시작합니다."
              :"게임 선택은 방장만 할 수 있어요. 고르면 자동으로 함께 시작됩니다.")+'</p></div>'+
+    menuPanelHTML("마실 것 적기 (미리 적어두면 편해요)",false)+
     '<div class="menu">'+MENU.map(k=>{
       const card='<button class="gcard'+(k==="cafe"||k==="random"?" special":"")+'" data-g="'+k+'"'+
         (isHost?"":" disabled")+'>'+
@@ -1974,6 +1983,7 @@ function vLobby(){
       '<button class="btn ghost sm" id="specBtn"></button></div>'+
     '<div class="note" id="ln"></div>';
   stage.appendChild(box);
+  wireMenu();
   refs.lob={mlist:box.querySelector("#mlist"), spec:box.querySelector("#specBtn"), key:""};
   refs.lob.spec.onclick=()=>{
     const me=ST.players[ME.id];
@@ -3060,6 +3070,40 @@ function boardHTML(board,loser){
       '<span>'+esc(nameOf(b.id))+' '+tag+'</span><span class="sc">'+right+'</span></div>';
   }).join("")+'</div>';
 }
+/* 커피 주문 칸. 로비(게임 전)와 결과 화면에서 같은 것을 쓴다. showList 는 커피 사는 사람에게만 true. */
+function menuPanelHTML(label,showList){
+  return '<div class="panel" style="display:flex;flex-direction:column;gap:10px">'+
+    '<span class="lab">'+label+'</span>'+
+    '<input type="text" id="mw" maxlength="24" placeholder="예: 아이스 아메리카노" '+
+    'autocomplete="off" enterkeyhint="done">'+
+    '<button class="btn ghost sm" id="mok">저장</button>'+
+    '<div class="note" id="mn"></div></div>'+
+    (showList?'<div><div class="eyebrow" style="margin-bottom:8px">주문 목록</div>'+
+      '<div class="revealgrid" id="ml"></div></div>':'');
+}
+function wireMenu(){
+  refs.menu={inp:$("#mw"), ok:$("#mok"), note:$("#mn"), list:$("#ml"), key:null};
+  refs.menu.inp.value=(ST.menu||{})[ME.id]||"";
+  const save=()=>{ netSend({t:"menu", text:refs.menu.inp.value}); buzz(15); };
+  refs.menu.ok.onclick=save;
+  refs.menu.inp.addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); save(); } });
+  paintMenu();
+}
+/* 주문 목록은 커피를 사는 사람에게만 보여준다. 입력값 변화가 없으면 다시 그리지 않는다. */
+function paintMenu(){
+  const r=refs.menu, m=ST; if(!r||!m) return;
+  const mine=(m.menu||{})[ME.id];
+  const ids=m.order.filter(id=>(m.menu||{})[id]);
+  const key=ids.map(id=>id+":"+m.menu[id]).join("|")+"/"+(mine||"");
+  if(r.key===key) return;
+  r.key=key;
+  r.note.textContent=mine?("저장됨 · "+ids.length+"/"+m.order.length+"명 작성"):
+                           (ids.length+"/"+m.order.length+"명 작성");
+  if(r.list) r.list.innerHTML=ids.map(id=>
+    '<span class="rv'+(id===ME.id?" uniq":"")+'"><span>'+esc(emojiOf(id))+'</span>'+
+    '<span>'+esc(nameOf(id))+'</span><span class="num">'+esc(m.menu[id])+'</span></span>').join("")
+    || '<span class="note">아직 아무도 안 적었어요</span>';
+}
 function vResult(){
   keepAwake(false);
   const m=ST,L=m.loser;
@@ -3085,10 +3129,12 @@ function vResult(){
     '<div class="who">오늘 커피는<br><span>'+esc(nameOf(L))+'</span>님이 쏩니다</div>'+
     '<div class="sub">'+esc(GAMES[m.game]?GAMES[m.game].name:"")+(m.note?" · "+esc(m.note):"")+'</div></div>'+
     boardHTML(m.board||[],L)+
+    menuPanelHTML(ME.id===L?"내가 마실 것":"마실 것 적기", ME.id===L)+
     (ME.id===m.hostId
       ? '<div class="btnrow"><button class="btn ghost" id="again">한 판 더</button>'+
         '<button class="btn" id="other">다른 게임</button></div>'
       : '<div class="panel center"><span class="lead">방장이 다음 게임을 고르는 중이에요</span></div>');
+  wireMenu();
   if(ME.id===m.hostId){
     $("#again").onclick=()=>netSend({t:"start",game:m.game,trials:m.trials||reactN});
     $("#other").onclick=()=>netSend({t:"lobby"});
@@ -3203,6 +3249,7 @@ function patch(){
   if(refs.fight&&m.phase==="play"&&m.game==="fight") paintFight();
   if(refs.pick&&m.phase==="picking") paintPicking();
   if(refs.rc&&m.phase==="reveal") refs.rc.textContent=Math.max(0,Math.ceil(getRemain()/1000));
+  if(refs.menu) paintMenu();
 }
 
 /* ---- 참가자 칩 ---- */
